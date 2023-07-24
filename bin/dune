@@ -1,5 +1,5 @@
 (executable
  (public_name typst_of_jupyter)
  (name typst_of_jupyter)
- (modules typst_of_jupyter)
- (libraries base yojson))
+ (modules typst_of_jupyter Json_util parse_jupyter typst)
+ (libraries base omd yojson))
