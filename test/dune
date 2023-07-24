@@ -1,0 +1,2 @@
+(test
+ (name typst_of_jupyter))
