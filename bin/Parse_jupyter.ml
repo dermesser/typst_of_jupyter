@@ -1,5 +1,4 @@
 open Json_util
-
 module Json = Yojson.Basic
 module Assoc = Base.List.Assoc
 
@@ -16,14 +15,21 @@ module Markdown = struct
     let al = cast_assoc j in
     let content = cast_string (find_assoc ~default:(`String "") al "source") in
     let doc = Omd.of_string content in
-    { meta = cast_assoc (find_assoc ~default:(`Assoc []) al "metadata"); source = doc }
-
-
+    {
+      meta = cast_assoc (find_assoc ~default:(`Assoc []) al "metadata");
+      source = doc;
+    }
 end
 
 module Code = struct
   type output (* todo *)
-  type cell = { execount : int; meta : metadata; source : string; ouputs : output list }
+
+  type cell = {
+    execount : int;
+    meta : metadata;
+    source : string;
+    ouputs : output list;
+  }
 end
 
 type cell = Markdown of Markdown.cell | Code of Code.cell

@@ -1,5 +1,13 @@
 (executable
  (public_name typst_of_jupyter)
  (name typst_of_jupyter)
- (modules typst_of_jupyter Json_util parse_jupyter typst)
+ (modules typst_of_jupyter typst)
+ (preprocess (pps ppx_inline_test))
+ (libraries base omd notebook_parse))
+
+(library
+ (name notebook_parse)
+ (modules Json_util Parse_jupyter)
+ (preprocess (pps ppx_inline_test))
+ (inline_tests)
  (libraries base omd yojson))

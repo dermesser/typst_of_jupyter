@@ -1,4 +1,5 @@
-let header = {|
+let header =
+  {|
 #let sanitize_markdown(md) = md.replace("#", "=").replace("= ", "=")
 
 #let bgcolor_code = luma(230)
