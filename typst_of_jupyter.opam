@@ -9,6 +9,7 @@ depends: [
   "base"
   "dune" {>= "3.9"}
   "omd"
+  "parsexp"
   "yojson"
   "odoc" {with-doc}
 ]

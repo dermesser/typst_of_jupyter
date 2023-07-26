@@ -2,5 +2,5 @@
  (name parse_jupyter_test)
  (modules Parse_jupyter_test)
  (inline_tests)
- (preprocess (pps ppx_expect))
- (libraries notebook_parse base yojson))
+ (preprocess (pps ppx_expect ppx_sexp_value))
+ (libraries notebook_parse base parsexp yojson))

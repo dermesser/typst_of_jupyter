@@ -2,6 +2,8 @@ module Parse_jupyter = Notebook_parse.Parse_jupyter
 module Json = Yojson.Basic
 open Base
 
+let dump_sexp s = Out_channel.output_string Out_channel.stdout (Sexp.to_string_hum s)
+
 let test_md_cell_1 =
   {|
 {
@@ -14,11 +16,31 @@ let test_md_cell_1 =
 let%expect_test _ =
   let cell_json = Json.from_string test_md_cell_1 in
   let parsed = Parse_jupyter.Markdown.cell_of_json cell_json in
-  Out_channel.output_string Out_channel.stdout (Omd.to_sexp parsed.source);
+  let md = Parsexp.Single.parse_string_exn (Omd.to_sexp parsed.source) in
+  dump_sexp [%sexp {meta = ((Json.show (`Assoc parsed.meta)) : string); source = (md: Sexp.t)}];
   [%expect
     {|
-    ((heading 1 "Hello World")
-     (paragraph (concat "multi-line " (emph markdown)))) |}]
+    ((meta "`Assoc ([])")
+     (source
+      ((heading 1 "Hello World")
+       (paragraph (concat "multi-line " (emph markdown)))))) |}]
+
+let test_raw_cell_1 = {|
+{
+  "cell_type" : "raw",
+  "metadata" : {
+    "format" : "mime/type"
+  },
+  "source" : "[some nbformat output text]"
+}
+|}
+
+let%expect_test _ =
+  let cell = Parse_jupyter.Raw.cell_of_json (Json.from_string test_raw_cell_1) in
+  dump_sexp [%sexp { source = (cell.source : string); mime = (cell.mime : string); meta = ((Json.show (`Assoc cell.meta)):string) }];
+  [%expect {|
+    ((source "[some nbformat output text]") (mime mime/type)
+     (meta "`Assoc ([(\"format\", `String (\"mime/type\"))])")) |}]
 
 let test_code_cells =
   [

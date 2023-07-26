@@ -24,6 +24,13 @@ module Markdown = struct
     let al = cast_assoc j in
     let content = cast_string (find_assoc ~default:(`String "") al "source") in
     let doc = Omd.of_string content in
+    let cell_type = cast_string @@ find_assoc_exn al "cell_type" in
+    if not (String.equal cell_type "markdown") then
+      raise
+        (File_format_error
+           [%sexp
+             "Markdown.cell_of_json only handles markdown cells but got",
+               (cell_type : string)]);
     {
       meta = cast_assoc (find_assoc ~default:(`Assoc []) al "metadata");
       source = doc;
@@ -82,6 +89,13 @@ module Code = struct
   let cell_of_json j =
     let al = cast_assoc j in
     let get = find_assoc_exn al in
+    let cell_type = cast_string @@ find_assoc_exn al "cell_type" in
+    if not (String.equal cell_type "markdown") then
+      raise
+        (File_format_error
+           [%sexp
+             "Code.cell_of_json only handles code cells but got",
+               (cell_type : string)]);
     {
       execount = cast_int (get "execution_count");
       meta = cast_assoc (get "metadata");
@@ -90,4 +104,27 @@ module Code = struct
     }
 end
 
-type cell = Markdown of Markdown.cell | Code of Code.cell
+module Raw = struct
+  type cell = { meta : metadata; mime : string; source : string }
+
+  let cell_of_json js =
+    let al = cast_assoc js in
+    let get = find_assoc_exn al in
+    let cell_type = cast_string @@ find_assoc_exn al "cell_type" in
+    if not (String.equal cell_type "raw") then
+      raise
+        (File_format_error
+           [%sexp
+             "Raw.cell_of_json only handles raw cells but got",
+               (cell_type : string)]);
+    let mime =
+      cast_string @@ find_assoc_exn (cast_assoc (get "metadata")) "format"
+    in
+    {
+      meta = cast_assoc (get "metadata");
+      mime;
+      source = cast_string (get "source");
+    }
+end
+
+type cell = Markdown of Markdown.cell | Code of Code.cell | Raw of Raw.cell

@@ -16,7 +16,7 @@
  (name typst_of_jupyter)
  (synopsis "Convert jupyter notebooks to typst source code")
 ;  (description "A longer description")
- (depends ocaml base dune omd yojson)
+ (depends ocaml base dune omd parsexp yojson)
  (tags
   (jupyter typst convert)))
 
