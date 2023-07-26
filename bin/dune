@@ -8,6 +8,11 @@
 (library
  (name notebook_parse)
  (modules Json_util Parse_jupyter)
- (preprocess (pps ppx_inline_test))
+ (preprocess (pps ppx_inline_test ppx_sexp_value))
  (inline_tests)
- (libraries base omd yojson))
+ (libraries util
+  base omd yojson ppx_sexp_value))
+
+(library
+ (name util)
+ (modules Util))

@@ -1,8 +1,16 @@
 module Assoc = Base.List.Assoc
 module Json = Yojson.Basic
 
+open Base
+
+exception Json_type_exception of string
+exception Json_key_exception of string
+
 let find_assoc ~default l key =
   Option.value ~default (Assoc.find ~equal:String.equal l key)
+
+let find_assoc_exn l k = try List.Assoc.find_exn ~equal:String.equal l k with
+  | Not_found_s _ -> raise (Json_key_exception k)
 
 let%test "find_assoc" =
   let a =
@@ -19,8 +27,6 @@ let%test "find_assoc" =
       put (Json.pretty_to_string b);
       false
 
-exception Json_type_exception of string
-
 let raise_type_error expected got =
   let msg =
     Printf.sprintf "Expected %s but got %s" expected (Json.pretty_to_string got)
@@ -29,6 +35,10 @@ let raise_type_error expected got =
 
 let cast_assoc = function `Assoc l -> l | x -> raise_type_error "dict" x
 let cast_string = function `String s -> s | x -> raise_type_error "string" x
+let cast_string_list = function `List l -> List.map ~f:cast_string l | x -> raise_type_error "string list" x
+let cast_int = function `Int i -> i | x -> raise_type_error "int" x
+let cast_list = function `List l -> l | x -> raise_type_error "list" x
+
 let%test "cast_string_ok" = String.equal "Hello" (cast_string (`String "Hello"))
 
 let%test "cast_string_not_ok" =
