@@ -50,3 +50,12 @@ let%test "cast_assoc_ok" =
   match cast_assoc (`Assoc [ ("Hello", `String "World") ]) with
   | [ ("Hello", `String "World") ] -> true
   | _ -> false
+
+let rec json_to_sexp = function
+  | `Assoc l -> Sexp.List (List.map ~f:(fun ((k, v)) -> [%sexp (k:string), ((json_to_sexp v):Sexp.t)]) l)
+  | `Bool b -> Bool.sexp_of_t b
+  | `Float f -> Float.sexp_of_t f
+  | `Int i -> Int.sexp_of_t i
+  | `List l -> Sexp.List (List.map ~f:json_to_sexp l)
+  | `Null -> Sexp.List []
+  | `String s -> String.sexp_of_t s
