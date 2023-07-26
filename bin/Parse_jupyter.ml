@@ -26,13 +26,14 @@ module type Cell_type = sig
 end
 
 module Markdown = struct
-  type cell = { meta : metadata; source : Omd.doc }
+  type cell = { meta : metadata; attachments: metadata; source : Omd.doc }
 
   let to_sexp c =
     [%sexp
       "markdown",
         {
           meta = (metadata_to_sexp c.meta : Sexp.t);
+          attachments = (metadata_to_sexp c.attachments : Sexp.t);
           source =
             (Parsexp.Single.parse_string_exn @@ Omd.to_sexp c.source : Sexp.t);
         }]
@@ -50,6 +51,7 @@ module Markdown = struct
                (cell_type : string)]);
     {
       meta = cast_assoc (find_assoc ~default:(`Assoc []) al "metadata");
+      attachments = cast_assoc (find_assoc ~default:(`Assoc []) al "attachments");
       source = doc;
     }
 end
