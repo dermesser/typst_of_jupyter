@@ -42,7 +42,7 @@ let%expect_test _ =
     ((source "[some nbformat output text]") (mime mime/type)
      (meta "`Assoc ([(\"format\", `String (\"mime/type\"))])")) |}]
 
-let test_code_cells =
+let test_outputs =
   [
     {|{
     "output_type" : "stream",
@@ -103,7 +103,7 @@ let test_code_cells =
   ]
 
 let%expect_test _ =
-  let js_outputs = List.map ~f:Json.from_string test_code_cells in
+  let js_outputs = List.map ~f:Json.from_string test_outputs in
   let outputs = Parse_jupyter.Code.parse_outputs js_outputs in
   let o = Out_channel.stdout in
   List.iter

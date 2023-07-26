@@ -11,6 +11,7 @@ exception File_format_error of Sexp.t
 
 type metadata = (string * Json.t) list
 
+(* Currently unused *)
 module type Cell_type = sig
   type cell
 
@@ -128,3 +129,29 @@ module Raw = struct
 end
 
 type cell = Markdown of Markdown.cell | Code of Code.cell | Raw of Raw.cell
+type notebook = { meta : metadata; cells : cell list; nbformat : string }
+
+let cell_of_json js =
+  let ct = cast_string (find_assoc_exn (cast_assoc js) "cell_type") in
+  match ct with
+  | "markdown" -> Markdown (Markdown.cell_of_json js)
+  | "code" -> Code (Code.cell_of_json js)
+  | "raw" -> Raw (Raw.cell_of_json js)
+  | _ -> raise (File_format_error [%sexp "Unknown cell type: ", (ct : string)])
+
+let notebook_of_json js =
+  let al = cast_assoc js in
+  let get = find_assoc_exn al in
+  let nbformat =
+    String.concat
+      [
+        cast_string @@ find_assoc ~default:(`String "") al "nbformat";
+        ".";
+        cast_string @@ find_assoc ~default:(`String "") al "nbformat_minor";
+      ]
+  in
+  {
+    meta = cast_assoc (get "metadata");
+    cells = List.map ~f:cell_of_json (cast_list (get "cells"));
+    nbformat;
+  }
