@@ -1,9 +1,7 @@
 module Json_util = Json_util
-
 open Json_util
 open! Util
 open Base
-
 module Json = Yojson.Basic
 module Assoc = Base.List.Assoc
 
@@ -29,7 +27,7 @@ module type Cell_type = sig
 end
 
 module Markdown = struct
-  type cell = { meta : metadata; attachments: metadata; source : Omd.doc }
+  type cell = { meta : metadata; attachments : metadata; source : Omd.doc }
 
   let to_sexp c =
     [%sexp
@@ -43,7 +41,10 @@ module Markdown = struct
 
   let cell_of_json j =
     let al = cast_assoc j in
-    let source = String.concat_lines @@ cast_string_list (find_assoc ~default:(`String "") al "source") in
+    let source =
+      String.concat_lines
+      @@ cast_string_list (find_assoc ~default:(`String "") al "source")
+    in
     let doc = Omd.of_string source in
     let cell_type = cast_string @@ find_assoc_exn al "cell_type" in
     if not (String.equal cell_type "markdown") then
@@ -54,7 +55,8 @@ module Markdown = struct
                (cell_type : string)]);
     {
       meta = cast_assoc (find_assoc ~default:(`Assoc []) al "metadata");
-      attachments = cast_assoc (find_assoc ~default:(`Assoc []) al "attachments");
+      attachments =
+        cast_assoc (find_assoc ~default:(`Assoc []) al "attachments");
       source = doc;
     }
 end
@@ -154,8 +156,8 @@ module Code = struct
       raise
         (File_format_error
            [%sexp
-             ("Code.cell_of_json only handles code cells but got",
-               (cell_type : string))]);
+             "Code.cell_of_json only handles code cells but got",
+               (cell_type : string)]);
     {
       execount = cast_int (get "execution_count");
       meta = cast_assoc (get "metadata");
@@ -225,9 +227,11 @@ let notebook_of_json js =
   let nbformat =
     String.concat
       [
-        Int.to_string (cast_int @@ find_assoc ~default:(`String "") al "nbformat");
+        Int.to_string
+          (cast_int @@ find_assoc ~default:(`String "") al "nbformat");
         ".";
-        Int.to_string (cast_int @@ find_assoc ~default:(`String "") al "nbformat_minor");
+        Int.to_string
+          (cast_int @@ find_assoc ~default:(`String "") al "nbformat_minor");
       ]
   in
   {

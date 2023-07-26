@@ -5,8 +5,8 @@ open Base
 exception Json_type_exception of string
 exception Json_key_exception of string
 
-let find_assoc ~default l key =
-  Option.value ~default (Assoc.find ~equal:String.equal l key)
+let find_assoc_opt l key = Assoc.find ~equal:String.equal l key
+let find_assoc ~default l key = Option.value ~default (find_assoc_opt l key)
 
 let find_assoc_exn l k =
   try List.Assoc.find_exn ~equal:String.equal l k
@@ -29,19 +29,28 @@ let%test "find_assoc" =
 
 let rec recursive_find obj path =
   match (obj, path) with
-  | _, [] -> assert false
-  | `Assoc obj, x :: [] -> find_assoc_exn obj x
-  | `Assoc obj, x :: xs -> recursive_find (find_assoc_exn obj x) xs
-  | _ ->
-      raise
-        (Json_type_exception (Printf.sprintf "Expected {} in recursive_find"))
+  | _, [] -> None
+  | `Assoc obj, x :: [] -> find_assoc_opt obj x
+  | `Assoc obj, x :: xs -> (
+      match find_assoc_opt obj x with
+      | Some o -> recursive_find o xs
+      | None -> None)
+  | _ -> None
+
+let recursive_find_exn obj path =
+  match recursive_find obj path with
+  | None -> raise (Json_key_exception (String.concat_lines path))
+  | Some ok -> ok
+
+let recursive_find_assoc al path = recursive_find (`Assoc al) path
+let recursive_find_assoc_exn al path = recursive_find_exn (`Assoc al) path
 
 let%test "recursive_find" =
   let obj =
     Json.from_string {|{"Hello": "World", "foo": {"bar": 1, "baz": 2}}|}
   in
-  Json.equal (`String "World") (recursive_find obj [ "Hello" ])
-  && Json.equal (`Int 2) (recursive_find obj [ "foo"; "baz" ])
+  Json.equal (`String "World") (recursive_find_exn obj [ "Hello" ])
+  && Json.equal (`Int 2) (recursive_find_exn obj [ "foo"; "baz" ])
 
 let raise_type_error expected got =
   let msg =
