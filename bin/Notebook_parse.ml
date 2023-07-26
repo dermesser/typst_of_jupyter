@@ -1,6 +1,9 @@
+module Json_util = Json_util
+
 open Json_util
 open! Util
 open Base
+
 module Json = Yojson.Basic
 module Assoc = Base.List.Assoc
 
@@ -232,3 +235,5 @@ let notebook_of_json js =
     cells = List.map ~f:cell_of_json (cast_list (get "cells"));
     nbformat;
   }
+
+let notebook_of_string s = notebook_of_json (Json.from_string s)

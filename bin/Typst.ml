@@ -1,32 +1,10 @@
-let header =
-  {|
-#let sanitize_markdown(md) = md.replace("#", "=").replace("= ", "=")
-
-#let bgcolor_code = luma(230)
-#let bgcolor_result = rgb("a7d1de")
-#let codeblock(
-    lang: "python",
-    bgcolor: luma(230),
-    code) = block(fill: bgcolor,
-                  outset: 5pt,
-                  radius: 3pt,
-                  width: 100%,
-                  raw(code, lang: lang))
-#let resultblock(bgcolor: white, stroke: 1pt + luma(150), content) = [
-    #move(
-        align(
-            right, box(
-                inset: 0pt, height: 0pt, 
-                text(size: 10pt, fill: luma(140))[_Result:_])),
-            dx: -4em, dy: 12pt)
-    #block(fill: bgcolor, outset: 5pt, radius: 3pt, width: 100%, stroke: stroke, raw(content))
-]
-
-|}
+(** Converting Markdown to Typst. Notebook conversion is implemented in Typst_of_notebook. *)
 
 open Util
 open Base
 open Omd
+
+exception Markdown_to_typst_mismatch of string
 
 let rec inline_to_typst buf = function
   | Text (_attr, text) -> Buffer.add_string buf text
@@ -38,7 +16,8 @@ let rec inline_to_typst buf = function
         Buffer.contents buf2
       in
       let s =
-        Printf.sprintf {|#figure(image("%s", width: 80%%), caption: "%s")
+        Printf.sprintf
+          {|#figure(image("%s", width: 80%%), caption: "%s")
         |}
           destination label
       in
@@ -52,6 +31,10 @@ let rec inline_to_typst buf = function
       let s = Printf.sprintf {|#link("%s")[%s]
       |} destination label in
       Buffer.add_string buf s
+  | Html _ ->
+      raise
+        (Markdown_to_typst_mismatch
+           "HTML content cannot be easily converted to Typst markup.")
   | _ -> raise Unimplemented
 
 let markdown_to_typst md =
@@ -78,7 +61,7 @@ let markdown_to_typst md =
     | Blockquote (_attr, blocklist) ->
         (* todo: find best typst equivalent *)
         List.iter ~f:(block_to_typst buf) blocklist
-    | Thematic_break attr -> s "#line(length: 100%, stroke: gray)\n"
+    | Thematic_break attr -> s "#line(length: 90%, stroke: gray)\n"
     | Heading (attr, level, inl) ->
         let marker =
           String.concat
@@ -95,7 +78,10 @@ let markdown_to_typst md =
         c '\n';
         s contents;
         s "```"
-    | Html_block (attr, s) -> raise Unimplemented
+    | Html_block (attr, s) ->
+        raise
+          (Markdown_to_typst_mismatch
+             "HTML content cannot be easily converted to Typst markup.")
     | Definition_list (_attr, defs) ->
         let write_term { term; defs } =
           (* assert (Int.equal 1 (List.length defs)); *)
@@ -116,3 +102,5 @@ let markdown_to_typst md =
     md;
   c '\n';
   Buffer.contents buf
+
+let markdown_string_to_typst s = let doc = Omd.of_string s in markdown_to_typst doc

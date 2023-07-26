@@ -1,4 +1,6 @@
-module Parse_jupyter = Notebook_parse.Parse_jupyter
+
+open Notebook_parse
+
 module Json = Yojson.Basic
 open Base
 
@@ -9,26 +11,20 @@ let test_md_cell_1 =
 {
 "cell_type" : "markdown",
 "metadata" : {},
-"source" : "# Hello World\nmulti-line *markdown*"
+"source" : ["# Hello World\nmulti-line *markdown*"]
 }
 |}
 
 let%expect_test _ =
   let cell_json = Json.from_string test_md_cell_1 in
-  let parsed = Parse_jupyter.Markdown.cell_of_json cell_json in
+  let parsed = Markdown.cell_of_json cell_json in
   let md = Parsexp.Single.parse_string_exn (Omd.to_sexp parsed.source) in
   dump_sexp [%sexp {meta = ((Json.show (`Assoc parsed.meta)) : string); source = (md: Sexp.t)}];
-  [%expect.unreachable]
-[@@expect.uncaught_exn {|
-  (* CR expect_test_collector: This test expectation appears to contain a backtrace.
-     This is strongly discouraged as backtraces are fragile.
-     Please change this test to not include a backtrace. *)
-
-  ("Notebook_parse.Json_util.Json_type_exception(\"Expected string list but got \\\"# Hello World\\\\nmulti-line *markdown*\\\"\")")
-  Raised at Notebook_parse__Json_util.raise_type_error in file "bin/Json_util.ml", line 34, characters 2-33
-  Called from Notebook_parse__Parse_jupyter.Markdown.cell_of_json in file "bin/Parse_jupyter.ml", line 43, characters 40-103
-  Called from Parse_jupyter_test.(fun) in file "bin/tests/Parse_jupyter_test.ml", line 18, characters 15-60
-  Called from Expect_test_collector.Make.Instance_io.exec in file "collector/expect_test_collector.ml", line 234, characters 12-19 |}]
+  [%expect{|
+    ((meta "`Assoc ([])")
+     (source
+      ((heading 1 "Hello World")
+       (paragraph (concat "multi-line " (emph markdown)))))) |}]
 
 let test_raw_cell_1 = {|
 {
@@ -36,24 +32,16 @@ let test_raw_cell_1 = {|
   "metadata" : {
     "format" : "mime/type"
   },
-  "source" : "[some nbformat output text]"
+  "source" : ["[some nbformat output text]"]
 }
 |}
 
 let%expect_test _ =
-  let cell = Parse_jupyter.Raw.cell_of_json (Json.from_string test_raw_cell_1) in
+  let cell = Raw.cell_of_json (Json.from_string test_raw_cell_1) in
   dump_sexp [%sexp { source = (cell.source : string); mime = (cell.mime : string); meta = ((Json.show (`Assoc cell.meta)):string) }];
-  [%expect.unreachable]
-[@@expect.uncaught_exn {|
-  (* CR expect_test_collector: This test expectation appears to contain a backtrace.
-     This is strongly discouraged as backtraces are fragile.
-     Please change this test to not include a backtrace. *)
-
-  ("Notebook_parse.Json_util.Json_type_exception(\"Expected string list but got \\\"[some nbformat output text]\\\"\")")
-  Raised at Notebook_parse__Json_util.raise_type_error in file "bin/Json_util.ml", line 34, characters 2-33
-  Called from Notebook_parse__Parse_jupyter.Raw.cell_of_json in file "bin/Parse_jupyter.ml", line 191, characters 38-69
-  Called from Parse_jupyter_test.(fun) in file "bin/tests/Parse_jupyter_test.ml", line 44, characters 13-78
-  Called from Expect_test_collector.Make.Instance_io.exec in file "collector/expect_test_collector.ml", line 234, characters 12-19 |}]
+  [%expect{|
+    ((source "[some nbformat output text]\n") (mime mime/type)
+     (meta "`Assoc ([(\"format\", `String (\"mime/type\"))])")) |}]
 
 let test_outputs =
   [
@@ -117,13 +105,13 @@ let test_outputs =
 
 let%expect_test _ =
   let js_outputs = List.map ~f:Json.from_string test_outputs in
-  let outputs = Parse_jupyter.Code.parse_outputs js_outputs in
+  let outputs = Code.parse_outputs js_outputs in
   let o = Out_channel.stdout in
   List.iter
     ~f:(fun s ->
       Out_channel.output_string o s;
       Out_channel.output_string o "\n")
-    (List.map ~f:Parse_jupyter.Code.output_type outputs);
+    (List.map ~f:Code.output_type outputs);
   [%expect {|
     stream
     display_data
@@ -135,8 +123,8 @@ let%expect_test _ =
   (* dump_sexp [%sexp ((Core_unix.getcwd ()):string) ]; *)
   let test_nb = In_channel.with_open_text "../../../../../../Test Notebook.ipynb" read_nb in
   let test_nb_js = Json.from_string test_nb in
-  let nb = Parse_jupyter.notebook_of_json test_nb_js in
-  dump_sexp (Parse_jupyter.to_sexp nb);
+  let nb = notebook_of_json test_nb_js in
+  dump_sexp (to_sexp nb);
   [%expect {|
     ((meta
       ((kernelspec
