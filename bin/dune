@@ -1,7 +1,7 @@
 (executable
  (public_name typst_of_jupyter)
  (name typst_of_jupyter)
- (modules typst_of_jupyter typst)
+ (modules typst_of_jupyter)
  (preprocess (pps ppx_inline_test))
  (libraries base omd notebook_parse))
 
@@ -12,6 +12,12 @@
  (inline_tests)
  (libraries util
   base omd yojson parsexp ppx_sexp_value))
+
+(library
+ (name typst)
+ (modules Typst)
+ (libraries util
+ base omd))
 
 (library
  (name util)

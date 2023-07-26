@@ -10,6 +10,7 @@ depends: [
   "core"
   "core_unix"
   "dune" {>= "3.9"}
+  "base64"
   "omd"
   "parsexp"
   "yojson"
