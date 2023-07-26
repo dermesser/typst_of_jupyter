@@ -34,8 +34,7 @@ open Base
 
 let output_to_typst buf = function
   | Code.ExecuteResult { data; meta } -> (
-    (* todo: only use data of first matching output *)
-      match Json_util.recursive_find_assoc data [ "data"; "text/plain" ] with
+      match Json_util.find_assoc_opt data "text/plain" with
       | None -> ()
       | Some lines ->
           let lines = Json_util.cast_string_list lines in
@@ -54,15 +53,36 @@ let cell_to_typst buf lang = function
   | Markdown md ->
       Buffer.add_string buf (Typst.markdown_to_typst md.source);
       Buffer.add_char buf '\n'
-  | Code cd -> (
-      let output = (let outbuf = Buffer.create 1024 in List.iter ~f:(output_to_typst outbuf) cd.outputs; Buffer.contents outbuf) in
-      let source = (let outbuf = Buffer.create (16 + (String.length cd.source)) in Buffer.add_string outbuf "```"; Buffer.add_string outbuf lang; Buffer.add_char outbuf '\n'; Buffer.add_string outbuf cd.source; Buffer.add_string outbuf "\n```\n"; Buffer.contents outbuf) in
-      let box = Printf.sprintf {|
-      #move(align(right, box(text([[%d]], fill: blue), fill: red, inset: 0pt, height: 0pt)), dx: -25pt, dy: 10pt)
-      #codeblock([%s])
-      #resultblock([%s])|} 1 source output in
-      Buffer.add_string buf box;
-      Buffer.add_char buf '\n')
+  | Code cd ->
+      let source =
+        let outbuf = Buffer.create (16 + String.length cd.source) in
+        Buffer.add_string outbuf "```";
+        Buffer.add_string outbuf lang;
+        Buffer.add_char outbuf '\n';
+        Buffer.add_string outbuf cd.source;
+        Buffer.add_string outbuf "\n```\n";
+        Buffer.contents outbuf
+      in
+      let output =
+        if not (List.is_empty cd.outputs) then (
+          let outbuf = Buffer.create 1024 in
+          List.iter ~f:(output_to_typst outbuf) cd.outputs;
+          Some (Buffer.contents outbuf))
+        else None
+      in
+      let cell_text =
+        Printf.sprintf
+          {|
+      #move(align(right, box(text([[%d]], fill: blue), fill: red, inset: 0pt, height: 0pt)), dx: -35pt, dy: 10pt)
+      #codeblock([%s])|}
+          cd.execount source
+      in
+      let result_box = match output with
+      |  Some output -> Printf.sprintf "#resultblock([%s])" output
+      | None -> "" in
+      Buffer.add_string buf cell_text;
+      Buffer.add_string buf result_box;
+      Buffer.add_char buf '\n'
   | Raw r -> raise Unimplemented
 
 let nb_to_typst nb =
