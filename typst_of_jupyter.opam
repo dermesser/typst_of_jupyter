@@ -8,7 +8,7 @@ depends: [
   "ocaml"
   "base"
   "core"
-  "core_unix"
+  "filename_unix"
   "dune" {>= "3.9"}
   "base64"
   "omd"
