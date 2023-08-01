@@ -83,8 +83,9 @@ let extract_code_outputs ctx buf data =
     | Some png ->
         let pngbin = Base64.decode_exn (Json_util.cast_string png) in
         let filename = String.append (random_string ()) ".png" in
-        Buffer.add_string buf (Printf.sprintf {|#pngimage("%s")|} (Filename_base.concat ctx.asset_path filename));
-        [ (filename, pngbin) ]
+        let filepath = Filename_base.concat ctx.asset_path filename in
+        Buffer.add_string buf (Printf.sprintf {|#pngimage("%s")|} filename);
+        [ (filepath, pngbin) ]
   in
   png_attachment
 
@@ -103,7 +104,7 @@ let output_to_typst ctx buf = function
 
    [data] is an assoc list of file contents keyed by mime type.
 *)
-let decode_attachment filename data =
+let decode_attachment ctx filename data =
   let find mime =
     (* Yojson.Basic.to_channel Out_channel.stdout (`Assoc data); *)
     match Json_util.find_assoc_opt data mime with
@@ -111,7 +112,8 @@ let decode_attachment filename data =
     | Some contents ->
         (* Yojson.Basic.to_channel Out_channel.stdout contents; *)
         let bin = Base64.decode_exn (Json_util.cast_string contents) in
-        [ (filename, bin) ]
+        let file_path = Filename_base.concat ctx.asset_path filename in
+        [ (file_path, bin) ]
   in
   let mimes = [ "image/png"; "image/svg+xml" ] in
   (* TODO: expand list *)
@@ -119,9 +121,9 @@ let decode_attachment filename data =
   let f l mime = match l with [] -> find mime | x -> x in
   List.fold ~init:[] ~f mimes
 
-let extract_markdown_attachments attachments =
+let extract_markdown_attachments ctx attachments =
   let extract_attachment = function
-    | filename, `Assoc data -> decode_attachment filename data
+    | filename, `Assoc data -> decode_attachment ctx filename data
     | _ -> raise (Json_error "unexpected attachment format in markdown cell")
   in
   List.concat_map ~f:extract_attachment attachments
@@ -129,7 +131,7 @@ let extract_markdown_attachments attachments =
 let cell_to_typst ctx buf lang = function
   | Markdown md ->
       let r = Typst.markdown_to_typst md.source in
-      let attachments = extract_markdown_attachments md.attachments in
+      let attachments = extract_markdown_attachments ctx md.attachments in
       Buffer.add_string buf r;
       Buffer.add_char buf '\n';
       { Render.attachments }
@@ -177,7 +179,22 @@ let cell_to_typst ctx buf lang = function
       { Render.attachments }
   | Raw r -> raise Unimplemented
 
-let nb_to_typst nb =
+let write_attachments ctx a =
+  let f (name, data) =
+    (* the file names must be complete paths (but can be relative or absolute) *)
+    let write_file ch = Out_channel.output_string ch data in
+    Out_channel.with_open_bin name write_file
+  in
+  List.iter ~f a
+
+let write_render ctx { Render.attachments } text =
+  let fn = Filename_base.concat ctx.asset_path "main.typ"  in
+  write_attachments ctx attachments;
+  let write_typst ch = Out_channel.output_string ch text in
+  Out_channel.with_open_bin fn write_typst;
+  fn
+
+let nb_to_typst ?(asset_path = "typstofjupyter_assets") nb =
   let lang =
     try
       Json_util.cast_string
@@ -191,32 +208,15 @@ let nb_to_typst nb =
     | e -> raise e
   in
   let buf = Buffer.create 4096 in
-  let ctx = { asset_path = Filename_unix.temp_dir "typstofjup" "" } in
+  let ctx = { asset_path = asset_path } in
   let f = cell_to_typst ctx buf lang in
+  (try Core_unix.mkdir asset_path with
+    | Unix.Unix_error (Unix.EEXIST, _, _) -> ()
+    | _ -> ());
   Buffer.add_string buf header;
   let render =
     List.fold ~init:Render.empty ~f:Render.merge (List.map ~f nb.cells)
   in
-  (* Make asset paths relative. *)
-  let attachments =
-    List.map
-      ~f:(fun (s, d) -> (Filename_base.concat ctx.asset_path s, d))
-      render.attachments
-  in
-  printf "%d attachments\n" (List.length attachments);
-  (Buffer.contents buf, { Render.attachments })
+  printf "%d attachments\n" (List.length render.attachments);
+  write_render ctx render (Buffer.contents buf)
 
-let write_attachments a =
-  let f (name, data) =
-    (* the file names must be complete paths (but can be relative or absolute) *)
-    let write_file ch = Out_channel.output_string ch data in
-    Out_channel.with_open_bin name write_file
-  in
-  List.iter ~f a
-
-let write_render { Render.attachments } text =
-  let fn = Filename_unix.temp_file "typstofjup" ".typ" in
-  write_attachments attachments;
-  let write_typst ch = Out_channel.output_string ch text in
-  Out_channel.with_open_bin fn write_typst;
-  fn

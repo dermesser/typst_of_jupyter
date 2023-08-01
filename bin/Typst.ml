@@ -15,6 +15,8 @@ let rec inline_to_typst buf = function
         inline_to_typst buf2 label;
         Buffer.contents buf2
       in
+      (* TODO: rename attachments with random name. *)
+      let destination = String.chop_prefix_if_exists destination ~prefix:"attachment:" in
       let s =
         Printf.sprintf
           {|#figure(image("%s", width: 80%%), caption: "%s")
