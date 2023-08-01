@@ -39,6 +39,8 @@ module Markdown = struct
             (Parsexp.Single.parse_string_exn @@ Omd.to_sexp c.source : Sexp.t);
         }]
 
+  (* TODO: "uniquify" attachment filenames here. *)
+
   let cell_of_json j =
     let al = cast_assoc j in
     let source =
