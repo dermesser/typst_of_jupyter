@@ -19,8 +19,7 @@ let rec inline_to_typst buf = function
       let destination = String.chop_prefix_if_exists destination ~prefix:"attachment:" in
       let s =
         Printf.sprintf
-          {|#figure(image("%s", width: 80%%), caption: "%s")
-        |}
+          {|#figure(image("%s", width: 80%%), caption: "%s")|}
           destination label
       in
       Buffer.add_string buf s
@@ -30,8 +29,7 @@ let rec inline_to_typst buf = function
         inline_to_typst buf2 label;
         Buffer.contents buf2
       in
-      let s = Printf.sprintf {|#link("%s")[%s]
-      |} destination label in
+      let s = Printf.sprintf {|#link("%s")[%s]|} destination label in
       Buffer.add_string buf s
   | Html _ ->
       raise

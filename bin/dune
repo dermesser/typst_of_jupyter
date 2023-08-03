@@ -3,6 +3,7 @@
  (name Typst_of_jupyter_main)
  (modules Typst_of_jupyter_main Typst_of_notebook)
  (preprocess (pps ppx_inline_test))
+ (modes byte exe)
  (libraries base core ansi-parse core_unix core_unix.filename_unix base64 omd notebook typst))
 
 (library

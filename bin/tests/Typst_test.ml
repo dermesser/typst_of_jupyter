@@ -63,8 +63,6 @@ let%expect_test _ =
     == Images and links
 
     #figure(image("test.png", width: 80%), caption: "An image alt text")
-
     #link("https://borgac.net")[Linky link]
-
     And this is it. |}]
   

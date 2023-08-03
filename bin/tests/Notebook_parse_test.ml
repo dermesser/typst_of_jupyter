@@ -139,15 +139,10 @@ let%expect_test _ =
         ((execount 2) (meta ())
          (source
            "using Plots\
-          \n\
           \ngr()\
-          \n\
           \ndefault(fmt = :png)\
           \n\
-          \n\
-          \n\
-          \nusing DataFrames\
-          \n")
+          \nusing DataFrames")
          (outputs ())))
        (markdown
         ((meta ())
@@ -165,17 +160,14 @@ let%expect_test _ =
        (code
         ((execount 21) (meta ())
          (source  "f(x) = sin(x)\
-                 \n\
                  \ng(x) = cos(x)\
-                 \n\
-                 \nh(x) = tan(x)\
-                 \n")
+                 \nh(x) = tan(x)")
          (outputs
           ((execute_result
             ((data ((text/plain ("h (generic function with 1 method)"))))
              (meta ())))))))
        (code
-        ((execount 22) (meta ()) (source "xs = LinRange(0, 2pi, 100)\n")
+        ((execount 22) (meta ()) (source "xs = LinRange(0, 2pi, 100)")
          (outputs
           ((execute_result
             ((data
@@ -198,7 +190,7 @@ let%expect_test _ =
        (code
         ((execount 23) (meta ())
          (source
-          "plot(xs, [f, g, h]; ylim = (-2, 2), framestyle = :box, grid = false, palette = :tab10)\n")
+          "plot(xs, [f, g, h]; ylim = (-2, 2), framestyle = :box, grid = false, palette = :tab10)")
          (outputs
           ((execute_result
             ((data
@@ -209,7 +201,7 @@ let%expect_test _ =
         ((meta ()) (attachments ())
          (source ((paragraph "Let's produce an error:")))))
        (code
-        ((execount 24) (meta ()) (source "i(x)\n")
+        ((execount 24) (meta ()) (source "i(x)")
          (outputs
           ((error
             ((ename LoadError) (evalue "UndefVarError: `i` not defined")
@@ -224,7 +216,7 @@ let%expect_test _ =
        (code
         ((execount 3) (meta ())
          (source
-          "df = DataFrame((col1 = [\"First\", \"Second\", \"Third\"], col2 = [1, 2, 3]))\n")
+          "df = DataFrame((col1 = [\"First\", \"Second\", \"Third\"], col2 = [1, 2, 3]))")
          (outputs
           ((execute_result
             ((data
