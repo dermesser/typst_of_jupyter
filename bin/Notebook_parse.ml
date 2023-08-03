@@ -39,7 +39,72 @@ module Markdown = struct
             (Parsexp.Single.parse_string_exn @@ Omd.to_sexp c.source : Sexp.t);
         }]
 
-  (* TODO: "uniquify" attachment filenames here. *)
+  open Omd
+
+  let rec replace_markdown_attachments replacements : doc -> doc =
+    List.map ~f:(replace_block_attachments replacements)
+
+  and replace_block_attachments replacements : 'a block -> 'a block =
+    let repl_inl inl = replace_inline_attachments replacements inl in
+    let repl_md md = replace_markdown_attachments replacements md in
+    function
+    | Paragraph (attr, inl) -> Paragraph (attr, repl_inl inl)
+    | List (attr, lt, ls, doc) -> List (attr, lt, ls, List.map ~f:repl_md doc)
+    | Blockquote (attr, doc) -> Blockquote (attr, repl_md doc)
+    | Heading (attr, lvl, inl) -> Heading (attr, lvl, repl_inl inl)
+    | Definition_list (attr, defelts) ->
+        Definition_list
+          ( attr,
+            List.map
+              ~f:(fun { term; defs } ->
+                { term = repl_inl term; defs = List.map ~f:repl_inl defs })
+              defelts )
+    | Table (attr, heads, lines) ->
+        Table
+          ( attr,
+            List.map ~f:(fun (inl, ca) -> (repl_inl inl, ca)) heads,
+            List.map ~f:(fun line -> List.map ~f:repl_inl line) lines )
+    | x -> x
+
+  and replace_inline_attachments replacements =
+    let repl_inl inl = replace_inline_attachments replacements inl in
+    function
+    | Concat (attr, inls) -> Concat (attr, List.map ~f:repl_inl inls)
+    | Emph (attr, inl) -> Emph (attr, repl_inl inl)
+    | Strong (attr, inl) -> Strong (attr, repl_inl inl)
+    | Image (attr, { label; destination; title }) as img ->
+        let attachment = "attachment:" in
+        if String.is_prefix destination ~prefix:attachment then
+          let filename_old =
+            String.chop_prefix_if_exists ~prefix:attachment destination
+          in
+          let filename_new =
+            List.Assoc.find_exn ~equal:String.equal replacements filename_old
+          in
+          Image (attr, { label; destination = filename_new; title })
+        else img
+    | x -> x
+
+  let make_attachments_unique c =
+    let attachment_names = List.map ~f:(fun (a, _) -> a) c.attachments in
+    let transfer_suffix fn newname =
+      let suffix = List.last_exn (String.split fn ~on:'.') in
+      String.concat [ newname; "."; suffix ]
+    in
+    let replacements =
+      List.map
+        ~f:(fun a -> (a, transfer_suffix a (Util.random_string ())))
+        attachment_names
+    in
+    let attachments_new =
+      List.map
+        ~f:(fun ((old, nw), (old_, data)) -> (nw, data))
+        (match List.zip replacements c.attachments with
+        | Ok l -> l
+        | _ -> assert false)
+    in
+    let md_new = replace_markdown_attachments replacements c.source in
+    { c with source = md_new; attachments = attachments_new }
 
   let cell_of_json j =
     let al = cast_assoc j in
@@ -55,12 +120,13 @@ module Markdown = struct
            [%sexp
              "Markdown.cell_of_json only handles markdown cells but got",
                (cell_type : string)]);
-    {
-      meta = cast_assoc (find_assoc ~default:(`Assoc []) al "metadata");
-      attachments =
-        cast_assoc (find_assoc ~default:(`Assoc []) al "attachments");
-      source = doc;
-    }
+    make_attachments_unique
+      {
+        meta = cast_assoc (find_assoc ~default:(`Assoc []) al "metadata");
+        attachments =
+          cast_assoc (find_assoc ~default:(`Assoc []) al "attachments");
+        source = doc;
+      }
 end
 
 module Code = struct

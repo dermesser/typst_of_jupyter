@@ -43,10 +43,12 @@ open Util
 open Base
 open Core.Printf
 
-(* Where attachments etc. will be placed. *)
+(* Configuration of rendering process. *)
 type ctx = { asset_path : string }
 
 module Render = struct
+  (** Logic for managing rendering results *)
+
   (* A list of attachments from execution results or markdown cells. *)
   type attachments = (string, string) List.Assoc.t
 
@@ -56,14 +58,6 @@ module Render = struct
   let merge a b = { attachments = List.append a.attachments b.attachments }
   let empty = { attachments = [] }
 end
-
-let random_string ?(n = 12) () =
-  let random_char () =
-    Option.value ~default:'x' (Char.of_int (97 + Random.int 26))
-  in
-  String.of_char_list
-    (Sequence.fold (Sequence.range 0 n) ~init:[] ~f:(fun xs _ ->
-         random_char () :: xs))
 
 (* converts a dict of mime type -> base64 contents to an attachments list, or writes it inline to the buffer at the current position (plain text). *)
 let extract_code_outputs ctx buf data =
@@ -188,7 +182,7 @@ let write_attachments ctx a =
   List.iter ~f a
 
 let write_render ctx { Render.attachments } text =
-  let fn = Filename_base.concat ctx.asset_path "main.typ"  in
+  let fn = Filename_base.concat ctx.asset_path "main.typ" in
   write_attachments ctx attachments;
   let write_typst ch = Out_channel.output_string ch text in
   Out_channel.with_open_bin fn write_typst;
@@ -208,15 +202,14 @@ let nb_to_typst ?(asset_path = "typstofjupyter_assets") nb =
     | e -> raise e
   in
   let buf = Buffer.create 4096 in
-  let ctx = { asset_path = asset_path } in
+  let ctx = { asset_path } in
   let f = cell_to_typst ctx buf lang in
   (try Core_unix.mkdir asset_path with
-    | Unix.Unix_error (Unix.EEXIST, _, _) -> ()
-    | _ -> ());
+  | Unix.Unix_error (Unix.EEXIST, _, _) -> ()
+  | _ -> ());
   Buffer.add_string buf header;
   let render =
     List.fold ~init:Render.empty ~f:Render.merge (List.map ~f nb.cells)
   in
   printf "%d attachments\n" (List.length render.attachments);
   write_render ctx render (Buffer.contents buf)
-
