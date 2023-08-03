@@ -3,11 +3,11 @@
  (name Typst_of_jupyter_main)
  (modules Typst_of_jupyter_main Typst_of_notebook)
  (preprocess (pps ppx_inline_test))
- (libraries base core core_unix core_unix.filename_unix base64 omd notebook_parse typst))
+ (libraries base core core_unix core_unix.filename_unix base64 omd notebook typst))
 
 (library
- (name notebook_parse)
- (modules Notebook_parse Json_util)
+ (name notebook)
+ (modules Notebook Json_util)
  (preprocess (pps ppx_inline_test ppx_sexp_value))
  (inline_tests)
  (libraries util

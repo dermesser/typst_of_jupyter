@@ -3,7 +3,7 @@
  (modules Notebook_parse_test)
  (inline_tests)
  (preprocess (pps ppx_expect ppx_sexp_value))
- (libraries notebook_parse base core_unix parsexp yojson))
+ (libraries notebook base core_unix parsexp yojson))
 
  (library
  (name typst_test)

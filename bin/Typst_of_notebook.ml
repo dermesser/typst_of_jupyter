@@ -38,7 +38,7 @@ let header =
   |}
 
 module Json = Yojson.Basic
-open Notebook_parse
+open Notebook
 open Util
 open Base
 open Core.Printf
