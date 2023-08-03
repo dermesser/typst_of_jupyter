@@ -1,6 +1,6 @@
 {
     "ocaml.sandbox": {
         "kind": "opam",
-        "switch": "${workspaceFolder:typst_of_jupyter}"
+        "switch": "default"
     }
 }

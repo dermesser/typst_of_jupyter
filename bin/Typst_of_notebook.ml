@@ -59,6 +59,15 @@ module Render = struct
   let empty = { attachments = [] }
 end
 
+let sanitize_text_plain s =
+  let ps = Ansiparse.Concrete.parse_str s in
+  let f = function
+    | Ansiparse.Concrete.Esc _ -> ""
+    | Ansiparse.Concrete.Reset -> ""
+    | Ansiparse.Concrete.Text t -> t
+  in
+  String.concat (List.map ~f ps)
+
 (* converts a dict of mime type -> base64 contents to an attachments list, or writes it inline to the buffer at the current position (plain text). *)
 let extract_code_outputs ctx buf data =
   let _ =
@@ -66,6 +75,7 @@ let extract_code_outputs ctx buf data =
     | None -> []
     | Some lines ->
         let lines = Json_util.cast_string_list lines in
+        let lines = List.map ~f:sanitize_text_plain lines in
         Buffer.add_string buf "```";
         List.iter ~f:(Buffer.add_string buf) lines;
         Buffer.add_string buf "```\n";

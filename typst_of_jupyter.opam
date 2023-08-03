@@ -8,6 +8,7 @@ depends: [
   "ocaml"
   "base"
   "core"
+  "ansi-parse"
   "filename_unix"
   "dune" {>= "3.9"}
   "base64"

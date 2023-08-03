@@ -136,13 +136,18 @@ let%expect_test _ =
      (nbformat 4.5)
      (cells
       ((code
-        ((execount 20) (meta ())
-         (source  "using Plots\
-                 \n\
-                 \ngr()\
-                 \n\
-                 \ndefault(fmt = :png)\
-                 \n")
+        ((execount 2) (meta ())
+         (source
+           "using Plots\
+          \n\
+          \ngr()\
+          \n\
+          \ndefault(fmt = :png)\
+          \n\
+          \n\
+          \n\
+          \nusing DataFrames\
+          \n")
          (outputs ())))
        (markdown
         ((meta ())
@@ -210,5 +215,33 @@ let%expect_test _ =
             ((ename LoadError) (evalue "UndefVarError: `i` not defined")
              (traceback
               ("UndefVarError: `i` not defined" "" Stacktrace:
-               " [1] top-level scope" "   @ In[24]:1"))))))))))) |}]
+               " [1] top-level scope" "   @ In[24]:1"))))))))
+       (markdown
+        ((meta ()) (attachments ())
+         (source
+          ((heading 2 "Rich Outputs")
+           (paragraph "We can try some table outputs, for example:")))))
+       (code
+        ((execount 3) (meta ())
+         (source
+          "df = DataFrame((col1 = [\"First\", \"Second\", \"Third\"], col2 = [1, 2, 3]))\n")
+         (outputs
+          ((execute_result
+            ((data
+              ((text/html
+                ("<div><div style = \"float: left;\"><span>3\195\1512 DataFrame</span></div><div style = \"clear: both;\"></div></div><div class = \"data-frame\" style = \"overflow-x: scroll;\"><table class = \"data-frame\" style = \"margin-bottom: 6px;\"><thead><tr class = \"header\"><th class = \"rowNumber\" style = \"font-weight: bold; text-align: right;\">Row</th><th style = \"text-align: left;\">col1</th><th style = \"text-align: left;\">col2</th></tr><tr class = \"subheader headerLastRow\"><th class = \"rowNumber\" style = \"font-weight: bold; text-align: right;\"></th><th title = \"String\" style = \"text-align: left;\">String</th><th title = \"Int64\" style = \"text-align: left;\">Int64</th></tr></thead><tbody><tr><td class = \"rowNumber\" style = \"font-weight: bold; text-align: right;\">1</td><td style = \"text-align: left;\">First</td><td style = \"text-align: right;\">1</td></tr><tr><td class = \"rowNumber\" style = \"font-weight: bold; text-align: right;\">2</td><td style = \"text-align: left;\">Second</td><td style = \"text-align: right;\">2</td></tr><tr><td class = \"rowNumber\" style = \"font-weight: bold; text-align: right;\">3</td><td style = \"text-align: left;\">Third</td><td style = \"text-align: right;\">3</td></tr></tbody></table></div>"))
+               (text/latex
+                ("\\begin{tabular}{r|cc}\n" "\t& col1 & col2\\\\\n" "\t\\hline\n"
+                 "\t& String & Int64\\\\\n" "\t\\hline\n"
+                 "\t1 & First & 1 \\\\\n" "\t2 & Second & 2 \\\\\n"
+                 "\t3 & Third & 3 \\\\\n" "\\end{tabular}\n"))
+               (text/plain
+                ("\027[1m3\195\1512 DataFrame\027[0m\n"
+                 "\027[1m Row \027[0m\226\148\130\027[1m col1   \027[0m\027[1m col2  \027[0m\n"
+                 "     \226\148\130\027[90m String \027[0m\027[90m Int64 \027[0m\n"
+                 "\226\148\128\226\148\128\226\148\128\226\148\128\226\148\128\226\148\188\226\148\128\226\148\128\226\148\128\226\148\128\226\148\128\226\148\128\226\148\128\226\148\128\226\148\128\226\148\128\226\148\128\226\148\128\226\148\128\226\148\128\226\148\128\n"
+                 "   1 \226\148\130 First       1\n"
+                 "   2 \226\148\130 Second      2\n"
+                 "   3 \226\148\130 Third       3"))))
+             (meta ())))))))))) |}]
   
