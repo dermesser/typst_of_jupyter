@@ -229,7 +229,7 @@ module Code = struct
     {
       execount = cast_int (get "execution_count");
       meta = cast_assoc (get "metadata");
-      source = String.concat_lines @@ cast_string_list (get "source");
+      source = String.concat @@ cast_string_list (get "source");
       outputs = parse_outputs (cast_list (get "outputs"));
     }
 end
