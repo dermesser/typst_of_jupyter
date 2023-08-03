@@ -43,8 +43,12 @@ open Util
 open Base
 open Core.Printf
 
-(* Configuration of rendering process. *)
-type ctx = { asset_path : string }
+module Context = struct
+  (* Configuration of rendering process. *)
+  type ctx = { asset_path : string; buf : Buffer.t }
+
+  let create asset_path = { asset_path; buf = Buffer.create 1024 }
+end
 
 module Render = struct
   (** Logic for managing rendering results *)
@@ -59,6 +63,9 @@ module Render = struct
   let empty = { attachments = [] }
 end
 
+open Context
+
+(* Strip ANSI escape codes. *)
 let sanitize_text_plain s =
   let ps = Ansiparse.Concrete.parse_str s in
   let f = function
@@ -68,7 +75,8 @@ let sanitize_text_plain s =
   in
   String.concat (List.map ~f ps)
 
-(* converts a dict of mime type -> base64 contents to an attachments list, or writes it inline to the buffer at the current position (plain text). *)
+(* Converts a dict of mime type -> base64 contents to an attachments list,
+   or writes it inline to the buffer at the current position (plain text). *)
 let extract_code_outputs ctx buf data =
   let _ =
     match Json_util.find_assoc_opt data "text/plain" with
@@ -93,7 +101,7 @@ let extract_code_outputs ctx buf data =
   in
   png_attachment
 
-let output_to_typst ctx buf = function
+let output_to_typst ({ buf; _ } as ctx) = function
   | Code.ExecuteResult { data; meta } -> extract_code_outputs ctx buf data
   | Code.ErrorOutput { ename; evalue; traceback } ->
       let s = "#errorblock([```\n" in
@@ -132,7 +140,7 @@ let extract_markdown_attachments ctx attachments =
   in
   List.concat_map ~f:extract_attachment attachments
 
-let cell_to_typst ctx buf lang = function
+let cell_to_typst ({ buf; _ } as ctx) lang = function
   | Markdown md ->
       let r = Typst.markdown_to_typst md.source in
       let attachments = extract_markdown_attachments ctx md.attachments in
@@ -156,7 +164,8 @@ let cell_to_typst ctx buf lang = function
           let outbuf = Buffer.create 1024 in
           Buffer.add_string outbuf "#resultblock([";
           let attachments =
-            List.map ~f:(output_to_typst ctx outbuf) cd.outputs |> List.concat
+            List.map ~f:(output_to_typst { ctx with buf = outbuf }) cd.outputs
+            |> List.concat
           in
           Buffer.add_string outbuf "])";
           Some (Buffer.contents outbuf, { Render.attachments }))
@@ -212,8 +221,8 @@ let nb_to_typst ?(asset_path = "typstofjupyter_assets") nb =
     | e -> raise e
   in
   let buf = Buffer.create 4096 in
-  let ctx = { asset_path } in
-  let f = cell_to_typst ctx buf lang in
+  let ctx = { asset_path; buf } in
+  let f = cell_to_typst ctx lang in
   (try Core_unix.mkdir asset_path with
   | Unix.Unix_error (Unix.EEXIST, _, _) -> ()
   | _ -> ());
