@@ -10,3 +10,11 @@
  (preprocess (pps ppx_inline_test ppx_sexp_value))
  (inline_tests)
  (libraries base yojson))
+
+(library
+ (name notebook)
+ (modules Notebook)
+ (preprocess (pps ppx_inline_test ppx_sexp_value))
+ (inline_tests)
+ (libraries util
+  base omd yojson parsexp ppx_sexp_value))
