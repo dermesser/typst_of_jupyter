@@ -37,7 +37,7 @@ let rec inline_to_typst buf = function
            "HTML content cannot be easily converted to Typst markup.")
   | _ -> raise Unimplemented
 
-let markdown_to_typst md =
+let markdown_to_typst (md: doc) =
   let buf = Buffer.create 1024 in
   let endl () = Buffer.add_char buf '\n' in
   let s str = Buffer.add_string buf str in

@@ -42,14 +42,15 @@ open Base
 open Core.Printf
 
 module Context = struct
-  (* Configuration of rendering process. *)
+  (* Configuration of rendering process, and buffer for result. *)
   type ctx = { asset_path : string; buf : Buffer.t }
 
   let create asset_path = { asset_path; buf = Buffer.create 1024 }
 end
 
 module Render = struct
-  (** Logic for managing rendering results *)
+  (** Logic for managing rendering results. Note that the actual text is
+      stored in a buffer handled by the Context module. *)
 
   (* A list of attachments from execution results or markdown cells. *)
   type attachments = (string, string) List.Assoc.t
@@ -196,14 +197,15 @@ let write_attachments ctx a =
   in
   List.iter ~f a
 
-let write_render ctx { Render.attachments } text =
-  let fn = Filename_base.concat ctx.asset_path "main.typ" in
+let write_render ctx main_file { Render.attachments } text =
+  let fn = Filename_base.concat ctx.asset_path main_file in
   write_attachments ctx attachments;
   let write_typst ch = Out_channel.output_string ch text in
   Out_channel.with_open_bin fn write_typst;
   fn
 
-let nb_to_typst ?(asset_path = "typstofjupyter_assets") nb =
+(* Create or use directory at [asset_path] and generate files there. *)
+let nb_to_typst ?(asset_path = "typstofjupyter_assets") ?(main_file = "main.typ") nb =
   let lang =
     try
       Json_util.cast_string
@@ -223,8 +225,9 @@ let nb_to_typst ?(asset_path = "typstofjupyter_assets") nb =
   | Unix.Unix_error (Unix.EEXIST, _, _) -> ()
   | _ -> ());
   Buffer.add_string buf header;
+  (* Concatenates all rendered cells. *)
   let render =
     List.fold ~init:Render.empty ~f:Render.merge (List.map ~f nb.cells)
   in
   printf "%d attachments\n" (List.length render.attachments);
-  write_render ctx render (Buffer.contents buf)
+  write_render ctx main_file render (Buffer.contents buf)

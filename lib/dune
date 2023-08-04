@@ -1,2 +1,5 @@
 (library
- (name typst_of_jupyter))
+ (name typst)
+ (modules Typst)
+ (libraries util
+ base omd))
