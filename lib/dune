@@ -3,3 +3,8 @@
  (modules Typst)
  (libraries util
  base omd))
+
+(library
+ (name util)
+ (modules Util)
+ (libraries base))

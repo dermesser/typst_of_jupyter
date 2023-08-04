@@ -13,8 +13,3 @@
  (inline_tests)
  (libraries util
   base omd yojson parsexp ppx_sexp_value))
-
-(library
- (name util)
- (modules Util)
- (libraries base))
