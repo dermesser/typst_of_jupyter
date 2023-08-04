@@ -1,5 +1,7 @@
 exception Unimplemented
 
+module Json_util = Json_util
+
 open Base
 
 let random_string ?(n = 12) () =

@@ -1,5 +1,5 @@
-module Json_util = Json_util
-open Json_util
+
+open Util.Json_util
 open! Util
 open Base
 module Json = Yojson.Basic

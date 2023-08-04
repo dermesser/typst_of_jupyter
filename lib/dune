@@ -6,5 +6,7 @@
 
 (library
  (name util)
- (modules Util)
- (libraries base))
+ (modules Util Json_util)
+ (preprocess (pps ppx_inline_test ppx_sexp_value))
+ (inline_tests)
+ (libraries base yojson))
