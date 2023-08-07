@@ -1,6 +1,7 @@
 (* This is the style definition used by default. The generated cells are mostly using these definitions
    and are therefore independent of the final presentation. *)
-let header = {|
+let header =
+  {|
 
 // Global style:
 #set text(font: "DejaVu Sans")
@@ -119,18 +120,17 @@ let decode_attachment ctx filename data =
   let find mime =
     (* Yojson.Basic.to_channel Out_channel.stdout (`Assoc data); *)
     match Json_util.find_assoc_opt data mime with
-    | None -> []
+    | None -> None
     | Some contents ->
         (* Yojson.Basic.to_channel Out_channel.stdout contents; *)
         let bin = Base64.decode_exn (Json_util.cast_string contents) in
         let file_path = Filename_base.concat ctx.asset_path filename in
-        [ (file_path, bin) ]
+        Some (file_path, bin)
   in
   let mimes = [ "image/png"; "image/svg+xml" ] in
   (* TODO: expand list *)
   (* Only write first found file type. *)
-  let f l mime = match l with [] -> find mime | x -> x in
-  List.fold ~init:[] ~f mimes
+  Util.mapfirst find mimes |> Option.to_list
 
 let extract_markdown_attachments ctx attachments =
   let extract_attachment = function
@@ -171,11 +171,10 @@ let cell_to_typst ({ buf; _ } as ctx) lang = function
       in
       (* Render execution count as blue [number] and the code to the right of it. *)
       let cell_text =
-        Printf.sprintf
-          {|#exec_count("%d")
+        Printf.sprintf {|#exec_count("%d")
 #codeblock([%s])
-|}
-          cd.execount source
+|} cd.execount
+          source
       in
       (* Render the output, if there is output. *)
       let result_box, attachments =
@@ -205,7 +204,8 @@ let write_render ctx main_file { Render.attachments } text =
   fn
 
 (* Create or use directory at [asset_path] and generate files there. *)
-let nb_to_typst ?(asset_path = "typstofjupyter_assets") ?(main_file = "main.typ") nb =
+let nb_to_typst ?(asset_path = "typstofjupyter_assets")
+    ?(main_file = "main.typ") nb =
   let lang =
     try
       Json_util.cast_string
