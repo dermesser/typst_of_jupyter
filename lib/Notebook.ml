@@ -1,7 +1,7 @@
 
-open Util.Json_util
-open! Util
 open Base
+
+open Util.Json_util
 module Json = Yojson.Basic
 module Assoc = Base.List.Assoc
 
@@ -12,14 +12,14 @@ exception File_format_error of Sexp.t
 
 type metadata = (string * Json.t) list
 
-let metadata_to_sexp md =
+let metadata_to_sexp (md: metadata) : Sexp.t =
   Sexp.List
     (List.map
        ~f:(fun (k, v) -> [%sexp (k : string), (json_to_sexp v : Sexp.t)])
        md)
 
 (* Currently unused *)
-module type Cell_type = sig
+module type Cell = sig
   type cell
 
   val cell_of_json : Json.t -> cell

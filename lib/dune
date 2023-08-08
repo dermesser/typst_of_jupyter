@@ -18,3 +18,10 @@
  (inline_tests)
  (libraries util
   base omd yojson parsexp ppx_sexp_value))
+
+(library
+ (name texmath)
+ (modules texmath)
+ (preprocess (pps ppx_inline_test ppx_expect ppx_sexp_conv))
+ (inline_tests)
+ (libraries base core angstrom))
