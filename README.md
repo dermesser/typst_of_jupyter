@@ -14,10 +14,20 @@ soon through Github.
 
 ## Usage
 
-(to be added - currently, even the file name is hardcoded)
+From source, using `dune` (OCaml's build tool):
 
-The output is stored in a new or existing directory `typstofjupyter_assets`, containing both the typst source code and
-all extracted image assets.
+```
+dune exec bin/Typst_of_jupyter_main.exe -- --help
+```
+
+With a distributed binary:
+
+```
+typst_of_jupyter --help
+```
+
+The output is stored in the directory specified by `--asset-path`. It contains both extracted attachments and plots, as
+well as the `main.typ` file containing the typst source code.
 
 ## Status
 

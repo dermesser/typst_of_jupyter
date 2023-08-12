@@ -1,6 +1,7 @@
 (lang dune 3.9)
 
 (name typst_of_jupyter)
+(version 0.1)
 
 (generate_opam_files true)
 
@@ -8,14 +9,13 @@
 
 (maintainers "Lewin Bormann")
 
-; (license LICENSE)
+(license LICENSE)
 
 ; (documentation https://url/to/documentation)
 
 (package
  (name typst_of_jupyter)
  (synopsis "Convert jupyter notebooks to typst source code")
-;  (description "A longer description")
  (depends ocaml base core ansi-parse filename_unix dune base64 omd parsexp yojson)
  (tags
   (jupyter typst convert)))
