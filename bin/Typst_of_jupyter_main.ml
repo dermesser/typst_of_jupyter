@@ -1,4 +1,3 @@
-open! Core_unix
 module Json = Yojson.Basic
 module Render = Typst_of_notebook.Render
 
