@@ -12,6 +12,10 @@ In addition, this approach makes it possible to provide your own style or change
 It is written in OCaml, making it simple to distribute as a binary running mostly anywhere. Binaries will be provided
 soon through Github.
 
+## Overview
+
+See [my post on lewinb.net](https://lewinb.net/posts/19_typst_of_jupyter/).
+
 ## Usage
 
 From source, using `dune` (OCaml's build tool):
