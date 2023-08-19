@@ -50,19 +50,19 @@ let extract_code_outputs ctx buf data =
         Buffer.add_string buf "```\n";
         []
   in
-  let png_attachment =
-    match Json_util.find_assoc_opt data "image/png" with
-    | None -> []
+  let format_attachment (mime, ext) =
+    match Json_util.find_assoc_opt data mime with
+    | None -> None
     | Some png ->
         let pngbin = Base64.decode_exn (Json_util.cast_string png) in
-        let filename = String.append (random_string ()) ".png" in
+        let filename = String.append (random_string ()) ext in
         Buffer.add_string buf (Printf.sprintf {|#pngimage("%s")|} filename);
-        [ (filename, pngbin) ]
+        Some (filename, pngbin)
   in
-  png_attachment
+  Util.mapfirst format_attachment [("image/png", ".png"); ("image/svg+xml", ".svg")]
 
 let output_to_typst ({ buf; _ } as ctx) = function
-  | Code.ExecuteResult { data; meta } -> extract_code_outputs ctx buf data
+  | Code.ExecuteResult { data; meta } -> Option.to_list @@ extract_code_outputs ctx buf data
   | Code.ErrorOutput { ename; evalue; traceback } ->
       let s = "#errorblock([```\n" in
       Buffer.add_string buf s;
