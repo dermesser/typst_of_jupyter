@@ -8,9 +8,9 @@ module Assoc = Base.List.Assoc
 exception Json_error of string
 exception File_format_error of Sexp.t
 
-type metadata = (string * Json.t) list
+type stringdict = (string, Json.t) List.Assoc.t
 
-let metadata_to_sexp (md : metadata) : Sexp.t =
+let stringdict_to_sexp (md : stringdict) : Sexp.t =
   Sexp.List
     (List.map
        ~f:(fun (k, v) -> [%sexp (k : string), (json_to_sexp v : Sexp.t)])
@@ -26,7 +26,7 @@ end
 
 module Markdown = struct
   type attachments = (string, string) List.Assoc.t
-  type cell = { meta : metadata; attachments : attachments; source : Omd.doc }
+  type cell = { meta : stringdict; attachments : attachments; source : Omd.doc }
 
   let to_sexp c =
     let attachments_to_sexp l =
@@ -38,7 +38,7 @@ module Markdown = struct
     [%sexp
       "markdown",
         {
-          meta = (metadata_to_sexp c.meta : Sexp.t);
+          meta = (stringdict_to_sexp c.meta : Sexp.t);
           attachments = (attachments_to_sexp c.attachments : Sexp.t);
           source =
             (Parsexp.Single.parse_string_exn @@ Omd.to_sexp c.source : Sexp.t);
@@ -93,6 +93,9 @@ module Markdown = struct
   (* Decode an attachment and write it to the given file. Automatically finds the correct mime entry.
 
      [data] is an assoc list of file contents keyed by mime type.
+
+     TODO: problem - the image size in the typst output is determined from the layout, not from the actual
+     image size. This is not a problem for reasonably-sized images, but doesn't work for very small images.
   *)
   let decode_attachment filename data =
     let find mime =
@@ -165,8 +168,9 @@ end
 module Code = struct
   type output =
     | Stream of { name : string; text : string }
-    | DisplayData of { data : (string * Json.t) list; meta : metadata }
-    | ExecuteResult of { data : (string * Json.t) list; meta : metadata }
+    | DisplayData of { data : stringdict; meta : stringdict }
+    (* `data` is an alist of mime type -> base64 contents. *)
+    | ExecuteResult of { data : stringdict; meta : stringdict }
     | ErrorOutput of {
         ename : string;
         evalue : string;
@@ -175,7 +179,7 @@ module Code = struct
 
   type cell = {
     execount : int;
-    meta : metadata;
+    meta : stringdict;
     source : string;
     outputs : output list;
   }
@@ -187,15 +191,15 @@ module Code = struct
         [%sexp
           "display_data",
             {
-              data = (metadata_to_sexp data : Sexp.t);
-              meta = (metadata_to_sexp meta : Sexp.t);
+              data = (stringdict_to_sexp data : Sexp.t);
+              meta = (stringdict_to_sexp meta : Sexp.t);
             }]
     | ExecuteResult { data; meta } ->
         [%sexp
           "execute_result",
             {
-              data = (metadata_to_sexp data : Sexp.t);
-              meta = (metadata_to_sexp meta : Sexp.t);
+              data = (stringdict_to_sexp data : Sexp.t);
+              meta = (stringdict_to_sexp meta : Sexp.t);
             }]
     | ErrorOutput { ename; evalue; traceback } ->
         [%sexp
@@ -213,7 +217,7 @@ module Code = struct
       "code",
         {
           execount = (c.execount : int);
-          meta = (metadata_to_sexp c.meta : Sexp.t);
+          meta = (stringdict_to_sexp c.meta : Sexp.t);
           source = (c.source : string);
           outputs = (outputs : Sexp.t);
         }]
@@ -268,12 +272,12 @@ module Code = struct
 end
 
 module Raw = struct
-  type cell = { meta : metadata; mime : string; source : string }
+  type cell = { meta : stringdict; mime : string; source : string }
 
   let to_sexp c =
     [%sexp
       {
-        meta = (metadata_to_sexp c.meta : Sexp.t);
+        meta = (stringdict_to_sexp c.meta : Sexp.t);
         mime = (c.mime : string);
         source = (c.source : string);
       }]
@@ -299,7 +303,7 @@ module Raw = struct
 end
 
 type cell = Markdown of Markdown.cell | Code of Code.cell | Raw of Raw.cell
-type notebook = { meta : metadata; cells : cell list; nbformat : string }
+type notebook = { meta : stringdict; cells : cell list; nbformat : string }
 
 let cell_of_json js =
   let ct = cast_string (find_assoc_exn (cast_assoc js) "cell_type") in
