@@ -1,41 +1,5 @@
 (* This is the style definition used by default. The generated cells are mostly using these definitions
    and are therefore independent of the final presentation. *)
-let header =
-  {|
-
-// Global style:
-#set text(font: "DejaVu Sans")
-
-// Layout functions (these can be adapted as long as the interface remains stable):
-#let bgcolor_code = luma(230)
-#let bgcolor_result = rgb("a7d1de")
-#let errorblock(content) = block(
-  fill: rgb("#ffcccc"), outset: 5pt,
-  radius: 3pt,
-  width: 100%,
-  content)
-#let exec_count(t) = move(align(right, box(text(fill: blue)[
-  [#t]
-], fill: red, inset: 0pt, height: 0pt)), dx: -35pt, dy: 10pt)
-#let codeblock(
-    bgcolor: luma(230),
-    rawcode) = block(fill: bgcolor,
-                  outset: 5pt,
-                  radius: 3pt,
-                  width: 100%,
-                  rawcode)
-#let resultblock(bgcolor: white, stroke: 1pt + luma(150), content) = [
-    #move(
-        align(
-            right, box(
-                inset: 0pt, height: 0pt, 
-                text(size: 10pt, fill: luma(140))[_Result:_])),
-            dx: -4.5em, dy: 12pt)
-    #block(fill: bgcolor, outset: 5pt, radius: 3pt, width: 100%, stroke: stroke, content)
-]
-#let pngimage(path) = image(path, width: 80%)
-|}
-
 module Json = Yojson.Basic
 open Notebook
 open Util
@@ -204,7 +168,7 @@ let write_render ctx main_file { Render.attachments } text =
   fn
 
 (* Create or use directory at [asset_path] and generate files there. *)
-let nb_to_typst ?(asset_path = "typstofjupyter_assets")
+let nb_to_typst ?(asset_path = "typstofjupyter_assets") ~header
     ?(main_file = "main.typ") nb =
   let lang =
     try
