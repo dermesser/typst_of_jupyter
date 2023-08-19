@@ -15,7 +15,7 @@ end
 
 module Render = struct
   (** Logic for managing rendering results. Note that the actual text is
-      stored in a buffer handled by the Context module. *)
+      stored in a mutable buffer handled by the Context module. *)
 
   (* A list of attachments from execution results or markdown cells. *)
   type attachments = (string, string) List.Assoc.t
@@ -92,10 +92,10 @@ let decode_attachment ctx filename data =
         Some (file_path, bin)
   in
   let mimes = [ "image/png"; "image/svg+xml" ] in
-  (* TODO: expand list *)
   (* Only write first found file type. *)
   Util.mapfirst find mimes |> Option.to_list
 
+(* for a list of (filename, { attachment... }), decode and store attachments. *)
 let extract_markdown_attachments ctx attachments =
   let extract_attachment = function
     | filename, `Assoc data -> decode_attachment ctx filename data
@@ -112,25 +112,25 @@ let cell_to_typst ({ buf; _ } as ctx) lang = function
   | Code cd ->
       (* raw code block *)
       let source =
-        let outbuf = Buffer.create (16 + String.length cd.source) in
-        Buffer.add_string outbuf "```";
-        Buffer.add_string outbuf lang;
-        Buffer.add_char outbuf '\n';
-        Buffer.add_string outbuf cd.source;
-        Buffer.add_string outbuf "\n```\n";
-        Buffer.contents outbuf
+        let srcbuf = Buffer.create (16 + String.length cd.source) in
+        Buffer.add_string srcbuf "```";
+        Buffer.add_string srcbuf lang;
+        Buffer.add_char srcbuf '\n';
+        Buffer.add_string srcbuf cd.source;
+        Buffer.add_string srcbuf "\n```\n";
+        Buffer.contents srcbuf
       in
-      (* output of cell *)
-      let output =
+      (* result of cell: (contents, attachments) *)
+      let result =
         if not (List.is_empty cd.outputs) then (
-          let outbuf = Buffer.create 1024 in
-          Buffer.add_string outbuf "#resultblock([";
+          let resultbuf = Buffer.create 1024 in
+          Buffer.add_string resultbuf "#resultblock([";
           let attachments =
-            List.map ~f:(output_to_typst { ctx with buf = outbuf }) cd.outputs
+            List.map ~f:(output_to_typst { ctx with buf = resultbuf }) cd.outputs
             |> List.concat
           in
-          Buffer.add_string outbuf "])";
-          Some (Buffer.contents outbuf, { Render.attachments }))
+          Buffer.add_string resultbuf "])";
+          Some (Buffer.contents resultbuf, { Render.attachments }))
         else None
       in
       (* Render execution count as blue [number] and the code to the right of it. *)
@@ -142,7 +142,7 @@ let cell_to_typst ({ buf; _ } as ctx) lang = function
       in
       (* Render the output, if there is output. *)
       let result_box, attachments =
-        match output with
+        match result with
         | Some (text, output) -> (text, output.attachments)
         | None -> ("", [])
       in
@@ -184,14 +184,14 @@ let nb_to_typst ?(asset_path = "typstofjupyter_assets") ~header
   in
   let buf = Buffer.create 4096 in
   let ctx = { asset_path; buf } in
-  let f = cell_to_typst ctx lang in
+  let convert_cell = cell_to_typst ctx lang in
   (try Core_unix.mkdir asset_path with
   | Unix.Unix_error (Unix.EEXIST, _, _) -> ()
   | _ -> ());
   Buffer.add_string buf header;
   (* Concatenates all rendered cells. *)
   let render =
-    List.fold ~init:Render.empty ~f:Render.merge (List.map ~f nb.cells)
+    List.fold ~init:Render.empty ~f:Render.merge (List.map ~f:convert_cell nb.cells)
   in
   printf "%d attachments\n" (List.length render.attachments);
   write_render ctx main_file render (Buffer.contents buf)

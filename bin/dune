@@ -4,4 +4,4 @@
  (modules Typst_of_jupyter_main Typst_of_notebook)
  (preprocess (pps ppx_inline_test ppx_let))
  (modes byte exe)
- (libraries base core ansi-parse core_unix core_unix.filename_unix core_unix.command_unix base64 omd notebook typst))
+ (libraries base core ansi-parse core_unix core_unix.filename_unix core_unix.command_unix base64 imagelib omd notebook typst))

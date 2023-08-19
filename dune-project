@@ -16,7 +16,19 @@
 (package
  (name typst_of_jupyter)
  (synopsis "Convert jupyter notebooks to typst source code")
- (depends ocaml base core ansi-parse filename_unix dune base64 omd parsexp yojson)
+ (depends
+   ocaml
+   ansi-parse
+   base
+   base64
+   core
+   core_unix
+   dune
+   imagelib
+   omd
+   parsexp
+   yojson
+   )
  (tags
   (jupyter typst convert)))
 

@@ -8,12 +8,13 @@ license: "LICENSE"
 tags: ["jupyter" "typst" "convert"]
 depends: [
   "ocaml"
-  "base"
-  "core"
   "ansi-parse"
-  "filename_unix"
-  "dune" {>= "3.9"}
+  "base"
   "base64"
+  "core"
+  "core_unix"
+  "dune" {>= "3.9"}
+  "imagelib"
   "omd"
   "parsexp"
   "yojson"
