@@ -1,6 +1,4 @@
-
 open Base
-
 open Util.Json_util
 module Json = Yojson.Basic
 module Assoc = Base.List.Assoc
@@ -12,7 +10,7 @@ exception File_format_error of Sexp.t
 
 type metadata = (string * Json.t) list
 
-let metadata_to_sexp (md: metadata) : Sexp.t =
+let metadata_to_sexp (md : metadata) : Sexp.t =
   Sexp.List
     (List.map
        ~f:(fun (k, v) -> [%sexp (k : string), (json_to_sexp v : Sexp.t)])
@@ -27,14 +25,21 @@ module type Cell = sig
 end
 
 module Markdown = struct
-  type cell = { meta : metadata; attachments : metadata; source : Omd.doc }
+  type attachments = (string, string) List.Assoc.t
+  type cell = { meta : metadata; attachments : attachments; source : Omd.doc }
 
   let to_sexp c =
+    let attachments_to_sexp l =
+      Sexp.List
+        (List.map
+           ~f:(fun (filename, _) -> [%sexp "file", (filename : string)])
+           l)
+    in
     [%sexp
       "markdown",
         {
           meta = (metadata_to_sexp c.meta : Sexp.t);
-          attachments = (metadata_to_sexp c.attachments : Sexp.t);
+          attachments = (attachments_to_sexp c.attachments : Sexp.t);
           source =
             (Parsexp.Single.parse_string_exn @@ Omd.to_sexp c.source : Sexp.t);
         }]
@@ -85,10 +90,35 @@ module Markdown = struct
         else img
     | x -> x
 
-  let make_attachments_unique c =
-    let attachment_names = List.map ~f:(fun (a, _) -> a) c.attachments in
-    let transfer_suffix fn newname =
-      let suffix = List.last_exn (String.split fn ~on:'.') in
+  (* Decode an attachment and write it to the given file. Automatically finds the correct mime entry.
+
+     [data] is an assoc list of file contents keyed by mime type.
+  *)
+  let decode_attachment filename data =
+    let find mime =
+      match find_assoc_opt data mime with
+      | None -> None
+      | Some contents ->
+          let bin = Base64.decode_exn (cast_string contents) in
+          Some bin
+    in
+    let mimes = [ "image/png"; "image/svg+xml" ] in
+    (* Only write first found file type. *)
+    Util.mapfirst find mimes |> Option.to_list
+    |> List.map ~f:(fun d -> (filename, d))
+
+  (* for a list of (filename, { attachment... }), decode and store attachments. *)
+  let extract_markdown_attachments attachments =
+    let extract_attachment = function
+      | filename, `Assoc data -> decode_attachment filename data
+      | _ -> raise (Json_error "unexpected attachment format in markdown cell")
+    in
+    List.concat_map ~f:extract_attachment attachments
+
+  let read_attachments doc attachments =
+    let attachment_names = List.map ~f:(fun (a, _) -> a) attachments in
+    let transfer_suffix filename newname =
+      let suffix = List.last_exn (String.split filename ~on:'.') in
       String.concat [ newname; "."; suffix ]
     in
     let replacements =
@@ -98,13 +128,14 @@ module Markdown = struct
     in
     let attachments_new =
       List.map
-        ~f:(fun ((old, nw), (old_, data)) -> (nw, data))
-        (match List.zip replacements c.attachments with
+        ~f:(fun ((old, nw), (old_, desc)) -> (nw, desc))
+        (match List.zip replacements attachments with
         | Ok l -> l
         | _ -> assert false)
     in
-    let md_new = replace_markdown_attachments replacements c.source in
-    { c with source = md_new; attachments = attachments_new }
+    let attachments_complete = extract_markdown_attachments attachments_new in
+    let md_new = replace_markdown_attachments replacements doc in
+    (md_new, attachments_complete)
 
   let cell_of_json j =
     let al = cast_assoc j in
@@ -120,13 +151,15 @@ module Markdown = struct
            [%sexp
              "Markdown.cell_of_json only handles markdown cells but got",
                (cell_type : string)]);
-    make_attachments_unique
-      {
-        meta = cast_assoc (find_assoc ~default:(`Assoc []) al "metadata");
-        attachments =
-          cast_assoc (find_assoc ~default:(`Assoc []) al "attachments");
-        source = doc;
-      }
+    let attachments =
+      cast_assoc (find_assoc ~default:(`Assoc []) al "attachments")
+    in
+    let doc, attachments = read_attachments doc attachments in
+    {
+      meta = cast_assoc (find_assoc ~default:(`Assoc []) al "metadata");
+      attachments;
+      source = doc;
+    }
 end
 
 module Code = struct

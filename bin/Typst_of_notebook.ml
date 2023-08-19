@@ -17,11 +17,8 @@ module Render = struct
   (** Logic for managing rendering results. Note that the actual text is
       stored in a mutable buffer handled by the Context module. *)
 
-  (* A list of attachments from execution results or markdown cells. *)
-  type attachments = (string, string) List.Assoc.t
-
   (* Result from rendering a cell. *)
-  type render = { attachments : attachments }
+  type render = { attachments : Markdown.attachments }
 
   let merge a b = { attachments = List.append a.attachments b.attachments }
   let empty = { attachments = [] }
@@ -59,9 +56,8 @@ let extract_code_outputs ctx buf data =
     | Some png ->
         let pngbin = Base64.decode_exn (Json_util.cast_string png) in
         let filename = String.append (random_string ()) ".png" in
-        let filepath = Filename_base.concat ctx.asset_path filename in
         Buffer.add_string buf (Printf.sprintf {|#pngimage("%s")|} filename);
-        [ (filepath, pngbin) ]
+        [ (filename, pngbin) ]
   in
   png_attachment
 
@@ -76,37 +72,10 @@ let output_to_typst ({ buf; _ } as ctx) = function
       []
   | _ -> raise Unimplemented
 
-(* Decode an attachment and write it to the given file. Automatically finds the correct mime entry.
-
-   [data] is an assoc list of file contents keyed by mime type.
-*)
-let decode_attachment ctx filename data =
-  let find mime =
-    (* Yojson.Basic.to_channel Out_channel.stdout (`Assoc data); *)
-    match Json_util.find_assoc_opt data mime with
-    | None -> None
-    | Some contents ->
-        (* Yojson.Basic.to_channel Out_channel.stdout contents; *)
-        let bin = Base64.decode_exn (Json_util.cast_string contents) in
-        let file_path = Filename_base.concat ctx.asset_path filename in
-        Some (file_path, bin)
-  in
-  let mimes = [ "image/png"; "image/svg+xml" ] in
-  (* Only write first found file type. *)
-  Util.mapfirst find mimes |> Option.to_list
-
-(* for a list of (filename, { attachment... }), decode and store attachments. *)
-let extract_markdown_attachments ctx attachments =
-  let extract_attachment = function
-    | filename, `Assoc data -> decode_attachment ctx filename data
-    | _ -> raise (Json_error "unexpected attachment format in markdown cell")
-  in
-  List.concat_map ~f:extract_attachment attachments
-
 let cell_to_typst ({ buf; _ } as ctx) lang = function
   | Markdown md ->
       let r = Typst.markdown_to_typst md.source in
-      let attachments = extract_markdown_attachments ctx md.attachments in
+      let attachments = md.attachments in
       Buffer.add_string buf r;
       { Render.attachments }
   | Code cd ->
@@ -126,7 +95,9 @@ let cell_to_typst ({ buf; _ } as ctx) lang = function
           let resultbuf = Buffer.create 1024 in
           Buffer.add_string resultbuf "#resultblock([";
           let attachments =
-            List.map ~f:(output_to_typst { ctx with buf = resultbuf }) cd.outputs
+            List.map
+              ~f:(output_to_typst { ctx with buf = resultbuf })
+              cd.outputs
             |> List.concat
           in
           Buffer.add_string resultbuf "])";
@@ -156,7 +127,8 @@ let write_attachments ctx a =
   let f (name, data) =
     (* the file names must be complete paths (but can be relative or absolute) *)
     let write_file ch = Out_channel.output_string ch data in
-    Out_channel.with_open_bin name write_file
+    let path = Filename_base.concat ctx.asset_path name in
+    Out_channel.with_open_bin path write_file
   in
   List.iter ~f a
 
@@ -191,7 +163,8 @@ let nb_to_typst ?(asset_path = "typstofjupyter_assets") ~header
   Buffer.add_string buf header;
   (* Concatenates all rendered cells. *)
   let render =
-    List.fold ~init:Render.empty ~f:Render.merge (List.map ~f:convert_cell nb.cells)
+    List.fold ~init:Render.empty ~f:Render.merge
+      (List.map ~f:convert_cell nb.cells)
   in
   printf "%d attachments\n" (List.length render.attachments);
   write_render ctx main_file render (Buffer.contents buf)

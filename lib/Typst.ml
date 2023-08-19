@@ -16,10 +16,11 @@ let rec inline_to_typst buf = function
         Buffer.contents buf2
       in
       (* TODO: rename attachments with random name. *)
-      let destination = String.chop_prefix_if_exists destination ~prefix:"attachment:" in
+      let destination =
+        String.chop_prefix_if_exists destination ~prefix:"attachment:"
+      in
       let s =
-        Printf.sprintf
-          {|#figure(image("%s", width: 80%%), caption: "%s")|}
+        Printf.sprintf {|#figure(image("%s", width: 80%%), caption: "%s")|}
           destination label
       in
       Buffer.add_string buf s
@@ -37,7 +38,7 @@ let rec inline_to_typst buf = function
            "HTML content cannot be easily converted to Typst markup.")
   | _ -> raise Unimplemented
 
-let markdown_to_typst (md: doc) =
+let markdown_to_typst (md : doc) =
   let buf = Buffer.create 1024 in
   let endl () = Buffer.add_char buf '\n' in
   let s str = Buffer.add_string buf str in
@@ -103,4 +104,6 @@ let markdown_to_typst (md: doc) =
   c '\n';
   Buffer.contents buf
 
-let markdown_string_to_typst s = let doc = Omd.of_string s in markdown_to_typst doc
+let markdown_string_to_typst s =
+  let doc = Omd.of_string s in
+  markdown_to_typst doc

@@ -1,9 +1,13 @@
 module Json = Yojson.Basic
 module Render = Typst_of_notebook.Render
 
-type cliargs = { notebook_file: string; asset_path: string; header_file: string option }
+type cliargs = {
+  notebook_file : string;
+  asset_path : string;
+  header_file : string option;
+}
 
-let default_typst_header = 
+let default_typst_header =
   {|
 
 // Global style:
@@ -49,7 +53,9 @@ let main args =
         Notebook.notebook_of_string (In_channel.input_all ic))
   in
   let header = read_typst_header args.header_file in
-  let fn = Typst_of_notebook.nb_to_typst ~asset_path:args.asset_path ~header nb in
+  let fn =
+    Typst_of_notebook.nb_to_typst ~asset_path:args.asset_path ~header nb
+  in
   Printf.printf "Wrote typst file at %s\n" fn
 
 let args =
@@ -60,7 +66,9 @@ let args =
     flag "asset-path"
       (optional_with_default "typstofjupyter_assets" string)
       ~doc:"Output path for generated files"
-  and header_file = flag "header-file" (optional string) ~doc:"File containing typst header code with styles etc."
+  and header_file =
+    flag "header-file" (optional string)
+      ~doc:"File containing typst header code with styles etc."
   in
   fun () -> main { notebook_file; asset_path; header_file }
 
