@@ -31,10 +31,10 @@ let macro0 = macroname >>| fun mn -> Macro0 mn
 let expression = fix (fun e -> choice [ block e; macro1 e; macro0; token ])
 
 let%expect_test "simple-expression" =
-  match
+  (match
     parse_string ~consume:Angstrom.Consume.All expression "\\hello{world}"
   with
   | Ok t -> Printf.printf "%s" (Sexp.to_string (sexp_of_texpression t))
   | Error s ->
-      Printf.printf "error: %s" s;
-      [%expect {| (Macro1 hello(Token world)) |}]
+      Printf.printf "error: %s" s);
+  [%expect {| (Macro1 hello(Token world)) |}]
