@@ -21,16 +21,17 @@ module JR = struct
 
   let error_to_string l = Sexp.to_string (Sexp.List (List.map ~f:sexp_of_op l))
   let error_root e = Error [ e ]
-  let annotate v e = match v with
-    | Value v -> Value v
-    | Error ee -> Error (e::ee)
+
+  let annotate v e =
+    match v with Value v -> Value v | Error ee -> Error (e :: ee)
+
   let value v = Value v
 end
 
 open JR
 
 type doc = Json.t
-type ('a, 'b) t = { f : 'a -> 'b JR.t; op: op }
+type ('a, 'b) t = { f : 'a -> 'b JR.t; op : op }
 
 let run (m : (doc, 'a) t) (x : doc) =
   match m.f x with
@@ -40,7 +41,7 @@ let run (m : (doc, 'a) t) (x : doc) =
 
 exception Json_object_error of string
 
-let run_exn (m: (doc, 'a) t) (x: doc) =
+let run_exn (m : (doc, 'a) t) (x : doc) =
   match m.f x with
   | Error e ->
       raise
@@ -48,8 +49,10 @@ let run_exn (m: (doc, 'a) t) (x: doc) =
   | Value y -> y
 
 let ( >> ) (a : ('a, 'b) t) (b : ('b, 'c) t) : ('a, 'c) t =
-  let f x = match a.f x with Value v -> (annotate (b.f v) a.op) | Error e -> Error e in
-  {f; op = Cat}
+  let f x =
+    match a.f x with Value v -> annotate (b.f v) a.op | Error e -> Error e
+  in
+  { f; op = Cat }
 
 let ( >>? ) (a : ('a, 'b) t) (b : ('b JR.t, 'c) t) : ('a, 'c) t =
   let f x = b.f (a.f x) in
@@ -86,7 +89,7 @@ let dict : (doc, doc) t =
 
 (* Only returns a ['a list option] if all elements in list are of [typ]. *)
 let list_of (typ : (doc, 'a) t) : (doc, 'a list) t =
-  let op =  As_list typ.op in
+  let op = As_list typ.op in
   let f = function
     | `List l ->
         let f a e =
@@ -99,7 +102,7 @@ let list_of (typ : (doc, 'a) t) : (doc, 'a list) t =
         List.fold l ~init:(value []) ~f
     | _ -> error_root (As_list typ.op)
   in
-  { f; op = op }
+  { f; op }
 
 let list_filtered_of (typ : (doc, 'a) t) : (doc, 'a list) t =
   let op = As_list typ.op in
@@ -114,18 +117,18 @@ let list_filtered_of (typ : (doc, 'a) t) : (doc, 'a list) t =
         List.fold l ~init:(value []) ~f
     | _ -> error_root op
   in
-  { f; op  }
+  { f; op }
 
 let key (k : string) (typ : (doc, 'a) t) : (doc, 'a) t =
   let op = Key k in
   let f = function
     | `Assoc a -> (
         match List.Assoc.find a ~equal:String.equal k with
-        | Some v -> annotate (typ.f v) (Key k) 
+        | Some v -> annotate (typ.f v) (Key k)
         | None -> error_root (Key k))
     | _ -> error_root op
   in
-  { f; op = op }
+  { f; op }
 
 let inner (k : string) : (doc, doc) t = key k dict
 
@@ -153,7 +156,7 @@ let alternative (a : ('i, 'a) t) (b : ('i, 'a) t) : ('i, 'a) t =
     match (a.f x, b.f x) with
     | Value a', _ -> value a'
     | _, Value b' -> value b'
-    | Error ea, Error eb -> error_root op
+    | Error ea, _-> annotate (Error ea) op
   in
   { f; op }
 
@@ -189,8 +192,8 @@ let%expect_test "extract_dict" =
 
 let%expect_test "extract_dict_fail" =
   (match run (key "helloo" string) test_doc with
-    | Error e -> printf "%s" e
-    | Ok _ -> ());
+  | Error e -> printf "%s" e
+  | Ok _ -> ());
   [%expect {| element not found: ((Key helloo)) |}]
 
 let%expect_test "extract_dict_nested" =
@@ -217,9 +220,7 @@ let%expect_test "extract_dict_nested_path" =
 
 let%expect_test "extract_dict_nested_path_error" =
   let got = run (path [ "dict"; "inner"; "key" ] int) test_doc in
-  (match got with
-    | Ok _ -> printf "failure"
-    | Error e -> printf "%s" e);
+  (match got with Ok _ -> printf "failure" | Error e -> printf "%s" e);
   [%expect {| element not found: ((Key dict)(Key inner)(Key key)As_int) |}]
 
 let%expect_test "extract_both" =
@@ -229,11 +230,9 @@ let%expect_test "extract_both" =
   | _ -> printf "failure!");
   [%expect {| 1 0 |}]
 
-  let%expect_test "extract_both_error" =
+let%expect_test "extract_both_error" =
   let got = run (key "a" int <+> key "c" dict) test_doc in
-  (match got with
-  | Error e -> printf "%s" e
-  | _ -> printf "failure!");
+  (match got with Error e -> printf "%s" e | _ -> printf "failure!");
   [%expect {| element not found: ((Key c)) |}]
 
 let%test "extract_either" =
