@@ -1,5 +1,6 @@
 module Assoc = Base.List.Assoc
 module Json = Yojson.Basic
+module JUtil = Yojson.Basic.Util
 open Base
 
 exception Json_type_exception of string
@@ -66,8 +67,8 @@ let cast_string_list = function
   | `String s -> [ s ] (* lenient... *)
   | x -> raise_type_error "string list" x
 
-let cast_int = function `Int i -> i | x -> raise_type_error "int" x
-let cast_list = function `List l -> l | x -> raise_type_error "list" x
+let cast_int = JUtil.to_int
+let cast_list = JUtil.to_list
 let%test "cast_string_ok" = String.equal "Hello" (cast_string (`String "Hello"))
 
 let%test "cast_string_not_ok" =

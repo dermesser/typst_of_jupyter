@@ -1,13 +1,13 @@
 open Base
 open Core
 module Json = Yojson.Basic
-
 module Json_util = Json_util
 
 module JR = struct
   type op =
     | Key of string
     | Index of int
+    | As_assoc
     | As_int
     | As_float
     | As_bool
@@ -41,10 +41,8 @@ let extract (m : (doc, 'a) t) (x : doc) =
       Result.Error (sprintf "element not found: %s" (error_to_string e))
   | Value y -> Result.Ok y
 
-let extract_or ~default (m: (doc, 'a) t) (x : doc) =
-  match m.f x with
-  | Error e -> default
-  | Value y -> y
+let extract_or ~default (m : (doc, 'a) t) (x : doc) =
+  match m.f x with Error e -> default | Value y -> y
 
 exception Json_object_error of string
 
@@ -87,6 +85,11 @@ let string : (doc, string) t =
 let bool : (doc, bool) t =
   let op = As_bool in
   let f = function `Bool b -> value b | _ -> error_root op in
+  { f; op }
+
+let assoc : (doc, (string, doc) List.Assoc.t) t =
+  let op = As_assoc in
+  let f = function `Assoc a -> value a | _ -> error_root op in
   { f; op }
 
 let dict : (doc, doc) t =
@@ -163,7 +166,7 @@ let alternative (a : ('i, 'a) t) (b : ('i, 'a) t) : ('i, 'a) t =
     match (a.f x, b.f x) with
     | Value a', _ -> value a'
     | _, Value b' -> value b'
-    | Error ea, _-> annotate (Error ea) op
+    | Error ea, _ -> annotate (Error ea) op
   in
   { f; op }
 
@@ -176,17 +179,6 @@ let rec path (keys : string list) (el : (doc, 'a) t) : (doc, 'a) t =
   | [] -> assert false
   | [ k ] -> key k el
   | k :: ks -> inner k >> path ks el
-
-(* This is not super useful... *)
-module Let_syntax = struct
-  module Let_syntax = struct
-    let return x _ = x
-    let map = map
-    let both = both
-
-    module Open_on_rhs = struct end
-  end
-end
 
 let test_doc =
   Json.from_string
@@ -207,6 +199,12 @@ let%expect_test "extract_dict_nested" =
   let got = extract_exn (inner "dict" >> key "second" int) test_doc in
   printf "%d" got;
   [%expect {| 123 |}]
+
+let%expect_test "extract_dict_nested_assoc" =
+  let got = extract_exn (inner "dict" >> key "inner" assoc) test_doc in
+  let s = List.Assoc.sexp_of_t String.sexp_of_t Json_util.json_to_sexp got in
+  printf "%s" (Sexp.to_string s);
+  [%expect {| ((key value)) |}]
 
 let%expect_test "extract_dict_list" =
   let got = extract_exn (key "foo" (list_of string)) test_doc in
@@ -247,11 +245,3 @@ let%test "extract_either" =
   | Either.Second 1 -> true
   | Either.First _ -> false
   | _ -> false
-
-let%test "extract_let_syntax" =
-  let open Let_syntax in
-  let ex =
-    let%map v1 = key "a" int and v2 = key "b" dict in
-    (v1, v2)
-  in
-  match extract_exn ex test_doc with 1, `Assoc [] -> true | _ -> false
