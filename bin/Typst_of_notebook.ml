@@ -1,7 +1,7 @@
 (* This is the style definition used by default. The generated cells are mostly using these definitions
    and are therefore independent of the final presentation. *)
 module Json = Yojson.Basic
-module Json_util = Json_get.Json_util
+open Json_get
 open Notebook
 open Util
 open Base
@@ -44,7 +44,7 @@ let extract_code_outputs ctx buf data =
     match Json_util.find_assoc_opt data "text/plain" with
     | None -> []
     | Some lines ->
-        let lines = Json_util.cast_string_list lines in
+        let lines = extract_exn (list_of string) lines in
         let lines = List.map ~f:sanitize_text_plain lines in
         Buffer.add_string buf "```";
         List.iter ~f:(Buffer.add_string buf) lines;
@@ -55,15 +55,17 @@ let extract_code_outputs ctx buf data =
     match Json_util.find_assoc_opt data mime with
     | None -> None
     | Some png ->
-        let pngbin = Base64.decode_exn (Json_util.cast_string png) in
+        let pngbin = Base64.decode_exn (extract_exn string png) in
         let filename = String.append (random_string ()) ext in
         Buffer.add_string buf (Printf.sprintf {|#pngimage("%s")|} filename);
         Some (filename, pngbin)
   in
-  Util.mapfirst format_attachment [("image/png", ".png"); ("image/svg+xml", ".svg")]
+  Util.mapfirst format_attachment
+    [ ("image/png", ".png"); ("image/svg+xml", ".svg") ]
 
 let output_to_typst ({ buf; _ } as ctx) = function
-  | Code.ExecuteResult { data; meta } -> Option.to_list @@ extract_code_outputs ctx buf data
+  | Code.ExecuteResult { data; meta } ->
+      Option.to_list @@ extract_code_outputs ctx buf data
   | Code.ErrorOutput { ename; evalue; traceback } ->
       let s = "#errorblock([```\n" in
       Buffer.add_string buf s;
@@ -144,16 +146,11 @@ let write_render ctx main_file { Render.attachments } text =
 let nb_to_typst ?(asset_path = "typstofjupyter_assets") ~header
     ?(main_file = "main.typ") nb =
   let lang =
-    try
-      Json_util.cast_string
-      @@ Json_util.recursive_find_assoc_exn nb.meta
-           [ "kernel_spec"; "language" ]
+    match
+      extract (path [ "kernel_spec"; "language" ] string) (`Assoc nb.meta)
     with
-    | Json_util.Json_key_exception _ ->
-        Json_util.cast_string
-        @@ Json_util.recursive_find_assoc_exn nb.meta
-             [ "language_info"; "name" ]
-    | e -> raise e
+    | Error _ -> extract_exn (path [ "language_info"; "name" ] string) (`Assoc nb.meta)
+    | Ok v -> v
   in
   let buf = Buffer.create 4096 in
   let ctx = { asset_path; buf } in

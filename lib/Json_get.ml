@@ -38,7 +38,7 @@ type ('a, 'b) t = { f : 'a -> 'b JR.t; op : op }
 let extract (m : (doc, 'a) t) (x : doc) =
   match m.f x with
   | Error e ->
-      Result.Error (sprintf "element not found: %s" (error_to_string e))
+      Result.Error (sprintf "json error: %s" (error_to_string e))
   | Value y -> Result.Ok y
 
 let extract_or ~default (m : (doc, 'a) t) (x : doc) =
@@ -102,14 +102,14 @@ let list_of (typ : (doc, 'a) t) : (doc, 'a list) t =
   let op = As_list typ.op in
   let f = function
     | `List l ->
-        let f a e =
+        let f e a =
           match (a, typ.f e) with
           | Value a, Value e -> value (e :: a)
           | Error e, Error e2 -> error_root op
           | Error e, _ -> Error e
           | _, Error e -> Error e
         in
-        List.fold l ~init:(value []) ~f
+        List.fold_right l ~init:(value []) ~f
     | _ -> error_root (As_list typ.op)
   in
   { f; op }
@@ -193,7 +193,7 @@ let%expect_test "extract_dict_fail" =
   (match extract (key "helloo" string) test_doc with
   | Error e -> printf "%s" e
   | Ok _ -> ());
-  [%expect {| element not found: ((Key helloo)) |}]
+  [%expect {| json error: ((Key helloo)) |}]
 
 let%expect_test "extract_dict_nested" =
   let got = extract_exn (inner "dict" >> key "second" int) test_doc in
@@ -226,7 +226,7 @@ let%expect_test "extract_dict_nested_path" =
 let%expect_test "extract_dict_nested_path_error" =
   let got = extract (path [ "dict"; "inner"; "key" ] int) test_doc in
   (match got with Ok _ -> printf "failure" | Error e -> printf "%s" e);
-  [%expect {| element not found: ((Key dict)(Key inner)(Key key)As_int) |}]
+  [%expect {| json error: ((Key dict)(Key inner)(Key key)As_int) |}]
 
 let%expect_test "extract_both" =
   let got_a, got_b = extract_exn (key "a" int <+> key "b" dict) test_doc in
@@ -238,7 +238,7 @@ let%expect_test "extract_both" =
 let%expect_test "extract_both_error" =
   let got = extract (key "a" int <+> key "c" dict) test_doc in
   (match got with Error e -> printf "%s" e | _ -> printf "failure!");
-  [%expect {| element not found: ((Key c)) |}]
+  [%expect {| json error: ((Key c)) |}]
 
 let%test "extract_either" =
   match extract_exn (key "z" string <|*> key "a" int) test_doc with
