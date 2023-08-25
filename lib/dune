@@ -29,7 +29,7 @@
 (library
   (name json_get)
   (modules Json_get)
-  (preprocess (pps ppx_expect ppx_let ppx_sexp_value))
+  (preprocess (pps ppx_expect ppx_let ppx_sexp_value ppx_sexp_conv))
   (inline_tests)
   (libraries base core yojson)
   )
