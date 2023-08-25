@@ -225,25 +225,25 @@ module Code = struct
         }]
 
   let parse_output output =
-    let output = cast_assoc output in
-    let get = find_assoc_exn output in
-    match cast_string (get "output_type") with
+    let get_dict k = cast_assoc @@ extract_exn (key k dict) output in
+    let get_string k = extract_exn (key k string) output in
+    match get_string "output_type" with
     | "error" ->
         ErrorOutput
           {
-            ename = cast_string (get "ename");
-            evalue = cast_string (get "evalue");
-            traceback = cast_string_list (get "traceback");
+            ename = get_string "ename";
+            evalue = get_string "evalue";
+            traceback = extract_exn (key "traceback" (list_of string)) output;
           }
     | "execute_result" ->
         ExecuteResult
-          { data = cast_assoc (get "data"); meta = cast_assoc (get "metadata") }
+          { data = get_dict "data"; meta = get_dict "metadata" }
     | "display_data" ->
         DisplayData
-          { data = cast_assoc (get "data"); meta = cast_assoc (get "metadata") }
+          { data = get_dict "data"; meta = get_dict "metadata" }
     | "stream" ->
         Stream
-          { name = cast_string (get "name"); text = cast_string (get "text") }
+          { name = get_string "name"; text = get_string "text" }
     | x ->
         raise (File_format_error [%sexp "Unknown output type:", (x : string)])
 
@@ -256,9 +256,7 @@ module Code = struct
   let parse_outputs = List.map ~f:parse_output
 
   let cell_of_json j =
-    let al = cast_assoc j in
-    let get = find_assoc_exn al in
-    let cell_type = cast_string @@ find_assoc_exn al "cell_type" in
+    let cell_type = extract_exn (key "cell_type" string) j in
     if not (String.equal cell_type "code") then
       raise
         (File_format_error
@@ -266,10 +264,10 @@ module Code = struct
              "Code.cell_of_json only handles code cells but got",
                (cell_type : string)]);
     {
-      execount = cast_int (get "execution_count");
-      meta = cast_assoc (get "metadata");
-      source = String.concat @@ cast_string_list (get "source");
-      outputs = parse_outputs (cast_list (get "outputs"));
+      execount = extract_exn (key "execution_count" int) j;
+      meta = cast_assoc @@ extract_exn (key "metadata" dict) j;
+      source = String.concat @@ extract_exn (key "source" (list_of string)) j;
+      outputs = parse_outputs (extract_exn (key "outputs" (list_of dict)) j);
     }
 end
 
