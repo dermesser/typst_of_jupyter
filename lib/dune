@@ -6,7 +6,7 @@
 
 (library
  (name util)
- (modules Util Json_util)
+ (modules Util)
  (preprocess (pps ppx_inline_test ppx_sexp_value))
  (inline_tests)
  (libraries base yojson))
@@ -16,7 +16,7 @@
  (modules Notebook)
  (preprocess (pps ppx_inline_test ppx_sexp_value))
  (inline_tests)
- (libraries util
+ (libraries json_get util
   base base64 core omd yojson parsexp ppx_sexp_value))
 
 (library
@@ -28,7 +28,7 @@
 
 (library
   (name json_get)
-  (modules Json_get)
+  (modules Json_get Json_util)
   (preprocess (pps ppx_expect ppx_let ppx_sexp_value ppx_sexp_conv))
   (inline_tests)
   (libraries base core yojson)

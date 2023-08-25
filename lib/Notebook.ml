@@ -1,5 +1,6 @@
 open Base
-open Util.Json_util
+open Json_get
+open Json_get.Json_util
 module Json = Yojson.Basic
 module Assoc = Base.List.Assoc
 
@@ -141,13 +142,11 @@ module Markdown = struct
     (md_new, attachments_complete)
 
   let cell_of_json j =
-    let al = cast_assoc j in
     let source =
-      String.concat_lines
-      @@ cast_string_list (find_assoc ~default:(`String "") al "source")
+      extract_exn (key "source" (list_of string)) j |> String.concat_lines
     in
     let doc = Omd.of_string source in
-    let cell_type = cast_string @@ find_assoc_exn al "cell_type" in
+    let cell_type = extract_exn (key "cell_type" string) j in
     if not (String.equal cell_type "markdown") then
       raise
         (File_format_error
@@ -155,11 +154,14 @@ module Markdown = struct
              "Markdown.cell_of_json only handles markdown cells but got",
                (cell_type : string)]);
     let attachments =
-      cast_assoc (find_assoc ~default:(`Assoc []) al "attachments")
+      match extract (key "attachments" dict) j with
+      | Ok l -> cast_assoc l
+      | Error _ -> []
     in
     let doc, attachments = read_attachments doc attachments in
     {
-      meta = cast_assoc (find_assoc ~default:(`Assoc []) al "metadata");
+      meta =
+        cast_assoc (extract_or ~default:(`Assoc []) (key "metadata" dict) j);
       attachments;
       source = doc;
     }

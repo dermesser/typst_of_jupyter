@@ -1,6 +1,7 @@
 (* This is the style definition used by default. The generated cells are mostly using these definitions
    and are therefore independent of the final presentation. *)
 module Json = Yojson.Basic
+module Json_util = Json_get.Json_util
 open Notebook
 open Util
 open Base
