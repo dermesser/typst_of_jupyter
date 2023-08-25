@@ -180,45 +180,45 @@ let%expect_test "extract_dict_fail" =
   [%expect {| element not found: ((Get_field helloo)) |}]
 
 
-   (* let%expect_test "extract_dict_nested" =
-     let got = run_exn (inner "dict" >> key "second" int) test_doc in
-     printf "%d" got;
-     [%expect {| 123 |}]
+let%expect_test "extract_dict_nested" =
+  let got = run_exn (inner "dict" >> key "second" int) test_doc in
+  printf "%d" got;
+  [%expect {| 123 |}]
 
-   let%expect_test "extract_dict_list" =
-     let got = run_exn (key "foo" (list_of string)) test_doc in
-     printf "%d" (List.length got);
-     [%expect {| 2 |}]
+let%expect_test "extract_dict_list" =
+  let got = run_exn (key "foo" (list_of string)) test_doc in
+  printf "%d" (List.length got);
+  [%expect {| 2 |}]
 
-   let%expect_test "extract_dict_nested_double" =
-     let got =
-       run_exn (inner "dict" >> inner "inner" >> key "key" string) test_doc
-     in
-     printf "%s" got;
-     [%expect {| value |}]
+let%expect_test "extract_dict_nested_double" =
+  let got =
+    run_exn (inner "dict" >> inner "inner" >> key "key" string) test_doc
+  in
+  printf "%s" got;
+  [%expect {| value |}]
 
-   let%expect_test "extract_dict_nested_path" =
-     let got = run_exn (path [ "dict"; "inner"; "key" ] string) test_doc in
-     printf "%s" got;
-     [%expect {| value |}]
+let%expect_test "extract_dict_nested_path" =
+  let got = run_exn (path [ "dict"; "inner"; "key" ] string) test_doc in
+  printf "%s" got;
+  [%expect {| value |}]
 
-   let%expect_test "extract_both" =
-     let got_a, got_b = run_exn (key "a" int <+> key "b" dict) test_doc in
-     (match got_b with
-     | `Assoc got_b -> printf "%d %d" got_a (List.length got_b)
-     | _ -> printf "failure!");
-     [%expect {| 1 0 |}]
+let%expect_test "extract_both" =
+  let got_a, got_b = run_exn (key "a" int <+> key "b" dict) test_doc in
+  (match got_b with
+  | `Assoc got_b -> printf "%d %d" got_a (List.length got_b)
+  | _ -> printf "failure!");
+  [%expect {| 1 0 |}]
 
-   let%test "extract_either" =
-     match run_exn (key "z" string <|*> key "a" int) test_doc with
-     | Either.Second 1 -> true
-     | Either.First _ -> false
-     | _ -> false
+let%test "extract_either" =
+  match run_exn (key "z" string <|*> key "a" int) test_doc with
+  | Either.Second 1 -> true
+  | Either.First _ -> false
+  | _ -> false
 
-   let%test "extract_let_syntax" =
-     let open Let_syntax in
-     let ex =
-       let%map v1 = key "a" int and v2 = key "b" dict in
-       (v1, v2)
-     in
-     match run_exn ex test_doc with 1, `Assoc [] -> true | _ -> false *)
+let%test "extract_let_syntax" =
+  let open Let_syntax in
+  let ex =
+    let%map v1 = key "a" int and v2 = key "b" dict in
+    (v1, v2)
+  in
+  match run_exn ex test_doc with 1, `Assoc [] -> true | _ -> false
