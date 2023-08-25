@@ -24,7 +24,9 @@ let run_exn m x =
   | Some y -> y
 
 let int : (doc, int) t = function `Int i -> Some i | _ -> None
+let float : (doc, float) t = function `Float f -> Some f | _ -> None
 let string : (doc, string) t = function `String s -> Some s | _ -> None
+let bool : (doc, string) t = function `Bool b -> Some b | _ -> None
 let dict : (doc, doc) t = function `Assoc a -> Some (`Assoc a) | _ -> None
 
 (* Only returns a ['a list option] if all elements in list are of [typ]. *)
@@ -84,6 +86,7 @@ let rec path (keys : string list) (el : (doc, 'a) t) : (doc, 'a) t =
   | [ k ] -> key k el
   | k :: ks -> inner k >> path ks el
 
+(* This is not super useful... *)
 module Let_syntax = struct
   module Let_syntax = struct
     let return x _ = x
