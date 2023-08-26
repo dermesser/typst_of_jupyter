@@ -13,7 +13,7 @@ type doc = Json.t
 (* Type [t] represents an operation on a Json document that can
    potentially fail (not found, wrong type, etc.). The failure
    path can be tracked. Operations can be composed. *)
-type ('a, 'b) t = { f : 'a -> 'b JR.t; op : JR.op }
+type ('a, 'b) t
 
 exception Json_object_error of string
 
@@ -50,6 +50,12 @@ val bool : (doc, bool) t
 
 (* Convert a Json value into an alist *)
 val assoc : (doc, (string, doc) Base.List.Assoc.t) t
+
+(* Extract keys from a dict. *)
+val keys : (doc, string list) t
+
+(* Extract values from a dict *)
+val values : (doc, doc list) t
 
 (* Assert that a Json value is a dict. *)
 val dict : (doc, doc) t

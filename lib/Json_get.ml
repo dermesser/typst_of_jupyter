@@ -7,6 +7,8 @@ module JR = struct
   type op =
     | Key of string
     | Index of int
+    | As_keys
+    | As_values
     | As_assoc
     | As_int
     | As_float
@@ -91,6 +93,16 @@ let assoc : (doc, (string, doc) List.Assoc.t) t =
   let op = As_assoc in
   let f = function `Assoc a -> value a | _ -> error_root op in
   { f; op }
+
+let keys : (doc, string list) t =
+  let op = As_keys in
+  let f = function `Assoc a -> value @@ List.map ~f:(fun ((k, _)) -> k) a | _ -> error_root op in
+  { f; op }
+
+let values : (doc, doc list) t =
+    let op = As_values in
+    let f = function `Assoc a -> value @@ List.map ~f:(fun ((_, v)) -> v) a | _ -> error_root op in
+    { f; op }
 
 let dict : (doc, doc) t =
   let op = As_dict in
