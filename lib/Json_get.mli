@@ -1,3 +1,5 @@
+(* Read more here: https://lewinb.net/posts/20_functional_json_access/ *)
+
 module Json = Yojson.Basic
 module Json_util = Json_util
 

@@ -1,3 +1,5 @@
+(* Read more here: https://lewinb.net/posts/20_functional_json_access/ *)
+
 open Base
 open Core
 module Json = Yojson.Basic
