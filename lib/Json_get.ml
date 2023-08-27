@@ -19,6 +19,8 @@ module JR = struct
     | Both of op * op
     | Map
     | Cat
+    | Default
+    | Function
   [@@deriving sexp]
 
   type 'a t = Value of 'a | Error of op list
@@ -39,8 +41,7 @@ type ('a, 'b) t = { f : 'a -> 'b JR.t; op : op }
 
 let extract (m : (doc, 'a) t) (x : doc) =
   match m.f x with
-  | Error e ->
-      Result.Error (sprintf "json error: %s" (error_to_string e))
+  | Error e -> Result.Error (sprintf "json error: %s" (error_to_string e))
   | Value y -> Result.Ok y
 
 let extract_or ~default (m : (doc, 'a) t) (x : doc) =
@@ -64,6 +65,11 @@ let ( >> ) (a : ('a, 'b) t) (b : ('b, 'c) t) : ('a, 'c) t =
 let ( >>? ) (a : ('a, 'b) t) (b : ('b JR.t, 'c) t) : ('a, 'c) t =
   let f x = b.f (a.f x) in
   { f; op = Cat }
+
+let lift (f : 'a -> 'b) : ('a, 'b) t =
+  let op = Function in
+  let f = function x -> value (f x) in
+  { f; op }
 
 let map (a : ('a, 'b) t) ~(f : 'b -> 'c) : ('a, 'c) t =
   let f x = match a.f x with Value y -> value (f y) | Error e -> Error e in
@@ -96,17 +102,32 @@ let assoc : (doc, (string, doc) List.Assoc.t) t =
 
 let keys : (doc, string list) t =
   let op = As_keys in
-  let f = function `Assoc a -> value @@ List.map ~f:(fun ((k, _)) -> k) a | _ -> error_root op in
+  let f = function
+    | `Assoc a -> value @@ List.map ~f:(fun (k, _) -> k) a
+    | _ -> error_root op
+  in
   { f; op }
 
 let values : (doc, doc list) t =
-    let op = As_values in
-    let f = function `Assoc a -> value @@ List.map ~f:(fun ((_, v)) -> v) a | _ -> error_root op in
-    { f; op }
+  let op = As_values in
+  let f = function
+    | `Assoc a -> value @@ List.map ~f:(fun (_, v) -> v) a
+    | _ -> error_root op
+  in
+  { f; op }
 
 let dict : (doc, doc) t =
   let op = As_dict in
   let f = function `Assoc a -> value (`Assoc a) | _ -> error_root op in
+  { f; op }
+
+let list_index (ix : int) (typ : (doc, 'a) t) : (doc, 'a) t =
+  let op = Index ix in
+  let f = function
+    | `List l -> (
+        match List.nth l ix with Some e -> typ.f e | None -> error_root op)
+    | _ -> error_root (As_list typ.op)
+  in
   { f; op }
 
 (* Only returns a ['a list option] if all elements in list are of [typ]. *)
@@ -186,6 +207,11 @@ let ( <+> ) = both
 let ( <|*> ) = either
 let ( <|> ) = alternative
 
+let default (default : 'd) : ('d JR.t, 'd) t =
+  let op = Default in
+  let f = function Value v -> value v | Error _ -> value default in
+  { f; op }
+
 let rec path (keys : string list) (el : (doc, 'a) t) : (doc, 'a) t =
   match keys with
   | [] -> assert false
@@ -257,3 +283,15 @@ let%test "extract_either" =
   | Either.Second 1 -> true
   | Either.First _ -> false
   | _ -> false
+
+let%expect_test "extract_default" =
+  (* access ok*)
+  printf "%d\n" (extract_exn (key "a" int >>? default 42) test_doc);
+  (* cast error *)
+  printf "%d\n" (extract_exn (key "b" int >>? default 42) test_doc);
+  (* key error *)
+  printf "%d\n" (extract_exn (key "c" int >>? default 42) test_doc);
+  [%expect {|
+    1
+    42
+    42 |}]

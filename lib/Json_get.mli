@@ -33,6 +33,9 @@ val ( >> ) : ('a, 'b) t -> ('b, 'c) t -> ('a, 'c) t
    the second will still be called. (Currently not really used) *)
 val ( >>? ) : ('a, 'b) t -> ('b JR.t, 'c) t -> ('a, 'c) t
 
+(* Lift a function into [t] *)
+val lift : ('a -> 'b) -> ('a, 'b) t
+
 (* Transform the result of an operation. *)
 val map : ('a, 'b) t -> f:('b -> 'c) -> ('a, 'c) t
 
@@ -59,6 +62,8 @@ val values : (doc, doc list) t
 
 (* Assert that a Json value is a dict. *)
 val dict : (doc, doc) t
+
+val list_index : int -> (doc, 'a) t -> (doc, 'a) t
 
 (* Convert a Json value into a list of the given type. For example [list_of int]. An error is returned if any conversion fails. *)
 val list_of : (doc, 'a) t -> (doc, 'a list) t
@@ -89,6 +94,9 @@ val ( <|*> ) : ('a, 'b) t -> ('a, 'c) t -> ('a, ('b, 'c) Base.Either.t) t
 
 (* Operator for [alternative] *)
 val ( <|> ) : ('a, 'b) t -> ('a, 'b) t -> ('a, 'b) t
+
+(* If a previous extractor failed, use a default instead. Use with [(>>?)] *)
+val default : 'a -> ('a JR.t, 'a) t
 
 (* Quickly traverse a nested dict by specifying a path of keys and the type of the final value. *)
 val path : string list -> (doc, 'a) t -> (doc, 'a) t
