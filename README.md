@@ -1,5 +1,7 @@
 # `typst_of_jupyter`
 
+[![Build and test](https://github.com/dermesser/typst_of_jupyter/actions/workflows/workflow.yml/badge.svg)](https://github.com/dermesser/typst_of_jupyter/actions/workflows/workflow.yml)
+
 This project aims to convert Jupyter notebooks to PDFs by first generating typst (see [typst.app](https://typst.app))
 source code. This has the potential of generating better PDFs than the existing LaTeX route, or through HTML and a
 browser.
