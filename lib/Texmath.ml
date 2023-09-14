@@ -31,22 +31,28 @@ and macro2 e =
   Macro2 (mn, arg2, arg2)
 
 let macro0 = macroname >>| fun mn -> Macro0 mn
+let zero_or_once p = choice [ (p >>| fun e -> [ e ]); return [] ]
 
-let zero_or_once p = choice [p >>| (fun e -> [e]); return []]
-let rec maybe_sep_by s p = let* e = (option () s) *> (zero_or_once p) in
+let rec maybe_sep_by s p =
+  let* e = option () s *> zero_or_once p in
   match e with
-    | [] -> return []
-    | l -> (maybe_sep_by s p) >>= fun m -> return @@ List.append l m
+  | [] -> return []
+  | l -> maybe_sep_by s p >>= fun m -> return @@ List.append l m
 
 let expression =
-  fix (fun e -> choice [ block e; macro2 e; macro1 e; macro0; token ])
+  skip_whitespace
+  *> fix (fun e -> choice [ block e; macro2 e; macro1 e; macro0; token ])
+  <* skip_whitespace
 
 let expressions =
-  maybe_sep_by (satisfy Char.is_whitespace |> lift ignore) expression <* skip_whitespace
+  maybe_sep_by (satisfy Char.is_whitespace |> lift ignore) expression
+
+let parse_expression = parse_string ~consume:Consume.All expression
+let parse_expressions = parse_string ~consume:Consume.All expressions
 
 let parse_and_dump expr =
   let dump t = sexp_of_texpression t |> Sexp.to_string in
-  let e = parse_string ~consume:Angstrom.Consume.All expressions expr in
+  let e = parse_expressions expr in
   match e with
   | Ok ts ->
       Printf.printf "%s\n" (String.concat ~sep:"~~" (List.map ~f:dump ts))
@@ -59,6 +65,7 @@ let%expect_test "simple-expression" =
       {|\macro{input1}{input2} |};
       {|\macro{input1} {input2}|};
       {|\macro{input1} + \underbrace{abc}_{def}|};
+      {|\macro{input1} + \underbrace{\abc{xyz}}_{\def}|};
     ]
   in
   List.iter ~f:parse_and_dump exprs;
@@ -67,4 +74,23 @@ let%expect_test "simple-expression" =
     (Macro1 macro(Token input))
     (Macro2 macro(Token input2)(Token input2))
     (Macro1 macro(Token input1))~~(Token input2)
-    (Macro1 macro(Token input1))~~(Token +)~~(Macro1 underbrace(Token abc))~~(Token _)~~(Token def) |}]
+    (Macro1 macro(Token input1))~~(Token +)~~(Macro1 underbrace(Token abc))~~(Token _)~~(Token def)
+    (Macro1 macro(Token input1))~~(Token +)~~(Macro1 underbrace(Macro1 abc(Token xyz)))~~(Token _)~~(Macro0 def) |}]
+
+let greek_letters = Set.of_list (module String) [ "alpha"; "beta"; "pi" ]
+let token_to_typst t = if Set.mem greek_letters t then Some t else None
+
+let texpression_to_typst = function
+  | Macro0 t when Option.is_some (token_to_typst t) ->
+      Option.value_exn (token_to_typst t)
+  | Macro1 (macro, arg) -> failwith "unimplemented"
+  | _ -> failwith "unimplemented"
+
+let%expect_test "tex-to-typst" =
+  let exprs = [ {|\pi|}; {|\alpha |} ] in
+  List.iter
+    ~f:(fun e ->
+      printf "%s\n"
+        (texpression_to_typst (Result.ok_or_failwith @@ parse_expression e)))
+    exprs;
+  [%expect {| pi |}]
