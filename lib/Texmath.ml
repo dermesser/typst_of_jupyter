@@ -61,6 +61,7 @@ let%expect_test "simple-expression" =
       {|\macro{input}|};
       {|\macro{input1}{input2} |};
       {|\macro{input1} {input2}|};
+      {|\macro{input1} + \underbrace{abc}{def}|};
     ]
   in
   List.iter ~f:parse_and_dump exprs;
@@ -68,4 +69,5 @@ let%expect_test "simple-expression" =
     {|
     (Macro1 macro(Token input))
     (Macro2 macro(Token input2)(Token input2))
-    (Macro1 macro(Token input1))~~(Token input2) |}]
+    (Macro1 macro(Token input1))~~(Token input2)
+    (Macro1 macro(Token input1))~~(Token +)~~(Macro2 underbrace(Token def)(Token def)) |}]
