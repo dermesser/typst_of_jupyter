@@ -9,14 +9,7 @@ type texpression =
   | Token of string
 [@@deriving sexp]
 
-type result = Ok of texpression | Error of { pos : int; reason : string }
-
-let failwith reason =
-  let+ pos = pos in
-  Error { pos; reason }
-
-let chain f g x = f (g x)
-let negate f = chain not f
+let negate f x = not (f x)
 
 let token_char c =
   (not (Char.is_whitespace c))
