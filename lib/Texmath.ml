@@ -9,14 +9,12 @@ type texpression =
   | Token of string
 [@@deriving sexp]
 
-let negate f x = not (f x)
-
 let token_char c =
   (not (Char.is_whitespace c))
   && not (List.mem ~equal:Char.equal [ '{'; '}'; '['; ']'; '('; ')' ] c)
 
 let token = take_while1 token_char >>| fun t -> Token t
-let macroname = char '\\' *> take_while Char.is_alpha
+let macroname = char '\\' *> take_while Char.is_alphanum
 let skip_whitespace = skip_while Char.is_whitespace
 
 let rec block e = char '{' *> e <* char '}' <?> "block"
@@ -34,11 +32,17 @@ and macro2 e =
 
 let macro0 = macroname >>| fun mn -> Macro0 mn
 
+let zero_or_once p = choice [p >>| (fun e -> [e]); return []]
+let rec maybe_sep_by s p = let* e = (option () s) *> (zero_or_once p) in
+  match e with
+    | [] -> return []
+    | l -> (maybe_sep_by s p) >>= fun m -> return @@ List.append l m
+
 let expression =
   fix (fun e -> choice [ block e; macro2 e; macro1 e; macro0; token ])
 
 let expressions =
-  sep_by1 (satisfy Char.is_whitespace) expression <* skip_whitespace
+  maybe_sep_by (satisfy Char.is_whitespace |> lift ignore) expression <* skip_whitespace
 
 let parse_and_dump expr =
   let dump t = sexp_of_texpression t |> Sexp.to_string in
@@ -54,7 +58,7 @@ let%expect_test "simple-expression" =
       {|\macro{input}|};
       {|\macro{input1}{input2} |};
       {|\macro{input1} {input2}|};
-      {|\macro{input1} + \underbrace{abc}{def}|};
+      {|\macro{input1} + \underbrace{abc}_{def}|};
     ]
   in
   List.iter ~f:parse_and_dump exprs;
@@ -63,4 +67,4 @@ let%expect_test "simple-expression" =
     (Macro1 macro(Token input))
     (Macro2 macro(Token input2)(Token input2))
     (Macro1 macro(Token input1))~~(Token input2)
-    (Macro1 macro(Token input1))~~(Token +)~~(Macro2 underbrace(Token def)(Token def)) |}]
+    (Macro1 macro(Token input1))~~(Token +)~~(Macro1 underbrace(Token abc))~~(Token _)~~(Token def) |}]
