@@ -6,7 +6,6 @@ type texpression =
   | Macro0 of string
   | Macro1 of string * texpression
   | Macro2 of string * texpression * texpression
-  | Operator of texpression * char * texpression
   | Token of string
 [@@deriving sexp]
 
