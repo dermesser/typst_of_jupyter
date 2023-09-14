@@ -77,13 +77,19 @@ let%expect_test "simple-expression" =
     (Macro1 macro(Token input1))~~(Token +)~~(Macro1 underbrace(Token abc))~~(Token _)~~(Token def)
     (Macro1 macro(Token input1))~~(Token +)~~(Macro1 underbrace(Macro1 abc(Token xyz)))~~(Token _)~~(Macro0 def) |}]
 
-let greek_letters = Set.of_list (module String) [ "alpha"; "beta"; "pi" ]
-let token_to_typst t = if Set.mem greek_letters t then Some t else None
+let known_symbols = Set.of_list (module String) [ "alpha"; "beta"; "pi" ]
+let token_to_typst t = if Set.mem known_symbols t then Some t else None
 
 let texpression_to_typst = function
-  | Macro0 t when Option.is_some (token_to_typst t) ->
-      Option.value_exn (token_to_typst t)
-  | Macro1 (macro, arg) -> failwith "unimplemented"
+  (* By default, translate tokens (like operators, variables, etc.) literally. *)
+  | Token t -> t
+  (* Check if a macro is a greek letter/symbol/etc., and only take more complex measures if it is not. *)
+  | Macro0 t -> (
+      match token_to_typst t with
+      | Some t -> t
+      | None -> failwith (sprintf "unknown command %s" t))
+  | Macro1 (macro, arg) -> failwith "unimplemented: macro1"
+  | Macro2 (macro, arg1, arg2) -> failwith "unimplemented: macro2"
   | _ -> failwith "unimplemented"
 
 let%expect_test "tex-to-typst" =
