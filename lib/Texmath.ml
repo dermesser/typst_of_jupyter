@@ -98,4 +98,6 @@ let%expect_test "tex-to-typst" =
       printf "%s\n"
         (texpression_to_typst (Result.ok_or_failwith @@ parse_expression e)))
     exprs;
-  [%expect {| pi |}]
+  [%expect {|
+    pi
+    alpha |}]
