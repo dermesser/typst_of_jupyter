@@ -90,7 +90,6 @@ let texpression_to_typst = function
       | None -> failwith (sprintf "unknown command %s" t))
   | Macro1 (macro, arg) -> failwith "unimplemented: macro1"
   | Macro2 (macro, arg1, arg2) -> failwith "unimplemented: macro2"
-  | _ -> failwith "unimplemented"
 
 let%expect_test "tex-to-typst" =
   let exprs = [ {|\pi|}; {|\alpha |} ] in
