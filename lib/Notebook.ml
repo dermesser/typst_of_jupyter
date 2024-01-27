@@ -227,6 +227,7 @@ module Code = struct
   let parse_output output =
     let get_dict k = cast_assoc @@ extract_exn (key k dict) output in
     let get_string k = extract_exn (key k string) output in
+    let get_string_list k = String.concat @@ extract_exn (key k (list_of string)) output in
     match get_string "output_type" with
     | "error" ->
         ErrorOutput
@@ -243,7 +244,7 @@ module Code = struct
           { data = get_dict "data"; meta = get_dict "metadata" }
     | "stream" ->
         Stream
-          { name = get_string "name"; text = get_string "text" }
+          { name = get_string "name"; text = get_string_list "text" }
     | x ->
         raise (File_format_error [%sexp "Unknown output type:", (x : string)])
 
