@@ -265,7 +265,7 @@ module Code = struct
              "Code.cell_of_json only handles code cells but got",
                (cell_type : string)]);
     {
-      execount = extract_exn (key "execution_count" int) j;
+      execount = extract_or ~default:0 (key "execution_count" int) j;
       meta = cast_assoc @@ extract_exn (key "metadata" dict) j;
       source = String.concat @@ extract_exn (key "source" (list_of string)) j;
       outputs = parse_outputs (extract_exn (key "outputs" (list_of dict)) j);
