@@ -150,7 +150,8 @@ let nb_to_typst ?(asset_path = "typstofjupyter_assets") ~header
     match
       extract (path [ "kernel_spec"; "language" ] string) (`Assoc nb.meta)
     with
-    | Error _ -> extract_exn (path [ "language_info"; "name" ] string) (`Assoc nb.meta)
+    | Error _ ->
+        extract_exn (path [ "language_info"; "name" ] string) (`Assoc nb.meta)
     | Ok v -> v
   in
   let buf = Buffer.create 4096 in
