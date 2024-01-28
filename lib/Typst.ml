@@ -36,7 +36,11 @@ let rec inline_to_typst buf = function
       raise
         (Markdown_to_typst_mismatch
            "HTML content cannot be easily converted to Typst markup.")
-  | _ -> raise Unimplemented
+  | Emph _ -> ()
+  | Strong _ -> ()
+  | Code _ -> ()
+  | Hard_break _ -> ()
+  | Soft_break _ -> ()
 
 let markdown_to_typst (md : doc) =
   let buf = Buffer.create 1024 in

@@ -73,7 +73,8 @@ let output_to_typst ({ buf; _ } as ctx) = function
         (Sequence.intersperse ~sep:"\n" @@ Sequence.of_list traceback);
       Buffer.add_string buf "\n```\n])";
       []
-  | _ -> raise Unimplemented
+  | Code.DisplayData { data; meta } -> []
+  | Code.Stream { name; text } -> []
 
 let cell_to_typst ({ buf; _ } as ctx) lang = function
   | Markdown md ->
