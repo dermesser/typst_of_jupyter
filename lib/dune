@@ -1,35 +1,36 @@
 (library
  (name typst)
  (modules Typst)
- (libraries util
- base omd))
+ (libraries util base omd str))
 
 (library
  (name util)
  (modules Util)
- (preprocess (pps ppx_inline_test ppx_sexp_value))
+ (preprocess
+  (pps ppx_inline_test ppx_sexp_value))
  (inline_tests)
  (libraries base yojson))
 
 (library
  (name notebook)
  (modules Notebook)
- (preprocess (pps ppx_inline_test ppx_sexp_value))
+ (preprocess
+  (pps ppx_inline_test ppx_sexp_value))
  (inline_tests)
- (libraries json_get util
-  base base64 core omd yojson parsexp ppx_sexp_value))
+ (libraries json_get util base base64 core omd yojson parsexp ppx_sexp_value))
 
 (library
  (name texmath)
  (modules texmath)
- (preprocess (pps ppx_inline_test ppx_expect ppx_sexp_conv))
+ (preprocess
+  (pps ppx_inline_test ppx_expect ppx_sexp_conv))
  (inline_tests)
  (libraries base core angstrom))
 
 (library
-  (name json_get)
-  (modules Json_get Json_util)
-  (preprocess (pps ppx_expect ppx_let ppx_sexp_value ppx_sexp_conv))
-  (inline_tests)
-  (libraries base core yojson)
-  )
+ (name json_get)
+ (modules Json_get Json_util)
+ (preprocess
+  (pps ppx_expect ppx_let ppx_sexp_value ppx_sexp_conv))
+ (inline_tests)
+ (libraries base core yojson))

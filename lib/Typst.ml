@@ -7,7 +7,10 @@ open Omd
 exception Markdown_to_typst_mismatch of string
 
 let rec inline_to_typst buf = function
-  | Text (_attr, text) -> Buffer.add_string buf text
+  | Text (_attr, text) ->
+      let escaped_txt = Str.global_replace (Str.regexp "\\$\\") "$" text in
+      let escaped_txt = Str.global_replace (Str.regexp "@") "\\@" escaped_txt in
+      Buffer.add_string buf escaped_txt
   | Concat (_attr, inls) -> List.iter ~f:(inline_to_typst buf) inls
   | Image (_attr, { label; destination; title }) ->
       let label =
