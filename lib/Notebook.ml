@@ -227,7 +227,17 @@ module Code = struct
   let parse_output output =
     let get_dict k = cast_assoc @@ extract_exn (key k dict) output in
     let get_string k = extract_exn (key k string) output in
-    let get_string_list k = String.concat @@ extract_exn (key k (list_of string)) output in
+    let get_list_or_string k =
+      let text_extraction =
+        try
+          Some
+            (String.concat @@ extract_exn (key "text" (list_of string)) output)
+        with _ -> None
+      in
+      match text_extraction with
+      | Some text -> text
+      | None -> extract_exn (key "text" string) output
+    in
     match get_string "output_type" with
     | "error" ->
         ErrorOutput
@@ -237,14 +247,11 @@ module Code = struct
             traceback = extract_exn (key "traceback" (list_of string)) output;
           }
     | "execute_result" ->
-        ExecuteResult
-          { data = get_dict "data"; meta = get_dict "metadata" }
+        ExecuteResult { data = get_dict "data"; meta = get_dict "metadata" }
     | "display_data" ->
-        DisplayData
-          { data = get_dict "data"; meta = get_dict "metadata" }
+        DisplayData { data = get_dict "data"; meta = get_dict "metadata" }
     | "stream" ->
-        Stream
-          { name = get_string "name"; text = get_string_list "text" }
+        Stream { name = get_string "name"; text = get_list_or_string "text" }
     | x ->
         raise (File_format_error [%sexp "Unknown output type:", (x : string)])
 
