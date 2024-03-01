@@ -119,6 +119,11 @@ module Markdown = struct
     in
     List.concat_map ~f:extract_attachment attachments
 
+  (* Takes a markdown doc and a cell's attachment dict, and returns a new markdown doc with the attachments replaced.
+     In addition, a list of (filename, contents) pairs is returned, where the contents are the decoded attachments.
+     The contents should be placed in the assets directory.
+     Unique filenames are generated for each attachment.
+     *)
   let read_attachments doc attachments =
     let attachment_names = List.map ~f:(fun (a, _) -> a) attachments in
     let transfer_suffix filename newname =
