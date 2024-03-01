@@ -145,7 +145,7 @@ let%expect_test _ =
           \nusing DataFrames")
          (outputs ())))
        (markdown
-        ((meta ()) (attachments ((file pgkpnwxlycou.png)))
+        ((meta ()) (attachments ((file imahzuvzibsh.png)))
          (source
           ((heading 2 "Using Plots.jl")
            (paragraph
@@ -172,7 +172,7 @@ let%expect_test _ =
                  " 0.0, 0.0634665, 0.126933, 0.1904, \226\128\166, 6.09279, 6.15625, 6.21972, 6.28319"))))
              (meta ())))))))
        (markdown
-        ((meta ()) (attachments ((file nxbqnsbdfzus.png)))
+        ((meta ()) (attachments ((file capalsxevcgk.png)))
          (source
           ((paragraph "These are the trigonometric functions,")
            (paragraph "$$\\sin" (x) $$) (paragraph "$$\\cos" (x) $$)

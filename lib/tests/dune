@@ -5,7 +5,7 @@
  (preprocess (pps ppx_expect ppx_sexp_value))
  (libraries notebook base core_unix parsexp yojson))
 
- (library
+(library
  (name typst_test)
  (modules Typst_test)
  (inline_tests)
