@@ -112,11 +112,12 @@ let cell_to_typst ({ buf; _ } as ctx) lang = function
         else None
       in
       (* Render execution count as blue [number] and the code to the right of it. *)
-      let cell_text = Printf.sprintf {|
+      let cell_text =
         Printf.sprintf {|#exec_count("%d")
 #codeblock([%s])
 |} cd.execount
-          source in
+          source
+      in
       (* Render the output, if there is output. *)
       let result_box, attachments =
         match result with
