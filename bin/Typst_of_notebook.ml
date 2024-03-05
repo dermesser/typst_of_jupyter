@@ -73,7 +73,11 @@ let output_to_typst ({ buf; _ } as ctx) = function
         (Sequence.intersperse ~sep:"\n" @@ Sequence.of_list traceback);
       Buffer.add_string buf "\n```\n])";
       []
-  | _ -> raise Unimplemented
+  | Code.DisplayData { data; meta } ->
+      Option.to_list @@ extract_code_outputs ctx buf data
+  | Code.Stream { name; text } ->
+      Buffer.add_string buf text;
+      []
 
 let cell_to_typst ({ buf; _ } as ctx) lang = function
   | Markdown md ->
@@ -149,7 +153,8 @@ let nb_to_typst ?(asset_path = "typstofjupyter_assets") ~header
     match
       extract (path [ "kernel_spec"; "language" ] string) (`Assoc nb.meta)
     with
-    | Error _ -> extract_exn (path [ "language_info"; "name" ] string) (`Assoc nb.meta)
+    | Error _ ->
+        extract_exn (path [ "language_info"; "name" ] string) (`Assoc nb.meta)
     | Ok v -> v
   in
   let buf = Buffer.create 4096 in

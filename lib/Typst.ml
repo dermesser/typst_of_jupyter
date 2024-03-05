@@ -7,7 +7,10 @@ open Omd
 exception Markdown_to_typst_mismatch of string
 
 let rec inline_to_typst buf = function
-  | Text (_attr, text) -> Buffer.add_string buf text
+  | Text (_attr, text) ->
+      let escaped_txt = Str.global_replace (Str.regexp "\\$\\") "$" text in
+      let escaped_txt = Str.global_replace (Str.regexp "@") "\\@" escaped_txt in
+      Buffer.add_string buf escaped_txt
   | Concat (_attr, inls) -> List.iter ~f:(inline_to_typst buf) inls
   | Image (_attr, { label; destination; title }) ->
       let label =
@@ -36,7 +39,17 @@ let rec inline_to_typst buf = function
       raise
         (Markdown_to_typst_mismatch
            "HTML content cannot be easily converted to Typst markup.")
-  | _ -> raise Unimplemented
+  | Emph (_attr, inl) ->
+      Buffer.add_string buf "_";
+      inline_to_typst buf inl;
+      Buffer.add_string buf "_"
+  | Strong (_attr, inl) ->
+      Buffer.add_string buf "*";
+      inline_to_typst buf inl;
+      Buffer.add_string buf "*"
+  | Code _ -> ()
+  | Hard_break _ -> ()
+  | Soft_break _ -> ()
 
 let markdown_to_typst (md : doc) =
   let buf = Buffer.create 1024 in
