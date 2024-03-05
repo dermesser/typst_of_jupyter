@@ -4,6 +4,8 @@ let md_doc_1 = Omd.of_string {|
 ## A paragraph
 Hello World, this is a paragraph.
 
+Some *highlighted* **words**.
+
 ## A code block
 This is a code block:
 ```ocaml
@@ -38,9 +40,12 @@ let%expect_test _ =
   [%expect {|
     = Markdown example
 
+
     == A paragraph
 
     Hello World, this is a paragraph.
+    Some _highlighted_ *words*.
+
     == A code block
 
     This is a code block:
@@ -48,16 +53,19 @@ let%expect_test _ =
     ```ocaml
     Hello World
     ```
+
     == A list
 
     * A list
     * item
     * item 2
 
+
     === A definition list!
 
     / Term 1: That's the first term
     / Term 2: The second term
+
 
 
     == Images and links

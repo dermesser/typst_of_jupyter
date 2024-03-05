@@ -6,11 +6,14 @@ open Omd
 
 exception Markdown_to_typst_mismatch of string
 
-let rec inline_to_typst buf = function
+let rec inline_to_typst buf =
+  let s str = Buffer.add_string buf str in
+  let c ch = Buffer.add_char buf ch in
+  function
   | Text (_attr, text) ->
       let escaped_txt = Str.global_replace (Str.regexp "\\$\\") "$" text in
       let escaped_txt = Str.global_replace (Str.regexp "@") "\\@" escaped_txt in
-      Buffer.add_string buf escaped_txt
+      s escaped_txt
   | Concat (_attr, inls) -> List.iter ~f:(inline_to_typst buf) inls
   | Image (_attr, { label; destination; title }) ->
       let label =
@@ -18,35 +21,34 @@ let rec inline_to_typst buf = function
         inline_to_typst buf2 label;
         Buffer.contents buf2
       in
-      (* TODO: rename attachments with random name. *)
       let destination =
         String.chop_prefix_if_exists destination ~prefix:"attachment:"
       in
-      let s =
+      let figstr =
         Printf.sprintf {|#figure(image("%s", width: 80%%), caption: "%s")|}
           destination label
       in
-      Buffer.add_string buf s
+      s figstr
   | Link (_attr, { label; destination; title }) ->
       let label =
         let buf2 = Buffer.create 512 in
         inline_to_typst buf2 label;
         Buffer.contents buf2
       in
-      let s = Printf.sprintf {|#link("%s")[%s]|} destination label in
-      Buffer.add_string buf s
+      let linkstr = Printf.sprintf {|#link("%s")[%s]|} destination label in
+      s linkstr
   | Html _ ->
       raise
         (Markdown_to_typst_mismatch
            "HTML content cannot be easily converted to Typst markup.")
   | Emph (_attr, inl) ->
-      Buffer.add_string buf "_";
+      c '_';
       inline_to_typst buf inl;
-      Buffer.add_string buf "_"
+      c '_'
   | Strong (_attr, inl) ->
-      Buffer.add_string buf "*";
+      c '*';
       inline_to_typst buf inl;
-      Buffer.add_string buf "*"
+      c '*'
   | Code _ -> ()
   | Hard_break _ -> ()
   | Soft_break _ -> ()
@@ -81,6 +83,7 @@ let markdown_to_typst (md : doc) =
           String.concat
             (Sequence.to_list (Sequence.take (Sequence.repeat "=") level))
         in
+        endl ();
         s marker;
         s " ";
         inline_to_typst buf inl;
