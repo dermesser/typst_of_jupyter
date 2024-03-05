@@ -39,8 +39,14 @@ let rec inline_to_typst buf = function
       raise
         (Markdown_to_typst_mismatch
            "HTML content cannot be easily converted to Typst markup.")
-  | Emph _ -> ()
-  | Strong _ -> ()
+  | Emph (_attr, inl) ->
+      Buffer.add_string buf "_";
+      inline_to_typst buf inl;
+      Buffer.add_string buf "_"
+  | Strong (_attr, inl) ->
+      Buffer.add_string buf "*";
+      inline_to_typst buf inl;
+      Buffer.add_string buf "*"
   | Code _ -> ()
   | Hard_break _ -> ()
   | Soft_break _ -> ()
