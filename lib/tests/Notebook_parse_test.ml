@@ -99,7 +99,7 @@ let test_outputs =
       "evalue" : "some-value",
       "traceback" : ["Trace", "Trace", "Trace"]
   }
-  
+
   |};
   ]
 
@@ -227,5 +227,11 @@ let%expect_test _ =
                  "   1 \226\148\130 First       1\n"
                  "   2 \226\148\130 Second      2\n"
                  "   3 \226\148\130 Third       3"))))
-             (meta ())))))))))) |}]
-  
+             (meta ())))))))
+       (markdown
+        ((meta ()) (attachments ()) (source ((paragraph "More formatting")))))
+       (markdown
+        ((meta ()) (attachments ())
+         (source
+          ((paragraph (concat (emph Emph) " " (strong strong))) (code-block)
+           (paragraph "Hard break") (paragraph "Soft break    should all work")))))))) |}]
