@@ -9,27 +9,36 @@ module Assoc = Base.List.Assoc
 exception Json_error of string
 exception File_format_error of Sexp.t
 
-type stringdict = (string, Json.t) List.Assoc.t
+module Stringdict = struct
+  (* A helper type: assoc list of string to Json object. *)
+  type t = (string, Json.t) List.Assoc.t
 
-let stringdict_to_sexp (md : stringdict) : Sexp.t =
-  Sexp.List
-    (List.map
-       ~f:(fun (k, v) -> [%sexp (k : string), (json_to_sexp v : Sexp.t)])
-       md)
+  let sexp_of_t (md : t) : Sexp.t =
+    Sexp.List
+      (List.map
+         ~f:(fun (k, v) -> [%sexp (k : string), (json_to_sexp v : Sexp.t)])
+         md)
+end
 
 (* Currently unused *)
 module type Cell = sig
   type cell
 
   val cell_of_json : Json.t -> cell
-  val to_sexp : cell -> Sexp.t
+  val sexp_of_cell : cell -> Sexp.t
 end
 
 module Markdown = struct
+  (* List of attachments: each attachment is a pair of filename and contents. *)
   type attachments = (string, string) List.Assoc.t
-  type cell = { meta : stringdict; attachments : attachments; source : Omd.doc }
 
-  let to_sexp c =
+  type cell = {
+    meta : Stringdict.t;
+    attachments : attachments;
+    source : Omd.doc;
+  }
+
+  let sexp_of_cell c =
     let attachments_to_sexp l =
       Sexp.List
         (List.map
@@ -39,7 +48,7 @@ module Markdown = struct
     [%sexp
       "markdown",
         {
-          meta = (stringdict_to_sexp c.meta : Sexp.t);
+          meta = (Stringdict.sexp_of_t c.meta : Sexp.t);
           attachments = (attachments_to_sexp c.attachments : Sexp.t);
           source =
             (Parsexp.Single.parse_string_exn @@ Omd.to_sexp c.source : Sexp.t);
@@ -123,7 +132,7 @@ module Markdown = struct
      In addition, a list of (filename, contents) pairs is returned, where the contents are the decoded attachments.
      The contents should be placed in the assets directory.
      Unique filenames are generated for each attachment.
-     *)
+  *)
   let read_attachments doc attachments =
     let attachment_names = List.map ~f:(fun (a, _) -> a) attachments in
     let transfer_suffix filename newname =
@@ -175,9 +184,9 @@ end
 module Code = struct
   type output =
     | Stream of { name : string; text : string }
-    | DisplayData of { data : stringdict; meta : stringdict }
+    | DisplayData of { data : Stringdict.t; meta : Stringdict.t }
     (* `data` is an alist of mime type -> base64 contents. *)
-    | ExecuteResult of { data : stringdict; meta : stringdict }
+    | ExecuteResult of { data : Stringdict.t; meta : Stringdict.t }
     | ErrorOutput of {
         ename : string;
         evalue : string;
@@ -186,47 +195,47 @@ module Code = struct
 
   type cell = {
     execount : int;
-    meta : stringdict;
+    meta : Stringdict.t;
     source : string;
     outputs : output list;
   }
 
   let output_to_sexp = function
     | Stream { name; text } ->
-        [%sexp "stream", { name = (name : string); text = (text : string) }]
+        [%sexp "stream", { name : string; text : string }]
     | DisplayData { data; meta } ->
         [%sexp
           "display_data",
             {
-              data = (stringdict_to_sexp data : Sexp.t);
-              meta = (stringdict_to_sexp meta : Sexp.t);
+              data = (Stringdict.sexp_of_t data : Sexp.t);
+              meta = (Stringdict.sexp_of_t meta : Sexp.t);
             }]
     | ExecuteResult { data; meta } ->
         [%sexp
           "execute_result",
             {
-              data = (stringdict_to_sexp data : Sexp.t);
-              meta = (stringdict_to_sexp meta : Sexp.t);
+              data = (Stringdict.sexp_of_t data : Sexp.t);
+              meta = (Stringdict.sexp_of_t meta : Sexp.t);
             }]
     | ErrorOutput { ename; evalue; traceback } ->
         [%sexp
           "error",
             {
-              ename = (ename : string);
-              evalue = (evalue : string);
+              ename : string;
+              evalue : string;
               traceback =
                 (Sexp.List (List.map ~f:String.sexp_of_t traceback) : Sexp.t);
             }]
 
-  let to_sexp c =
+  let sexp_of_cell c =
     let outputs = Sexp.List (List.map ~f:output_to_sexp c.outputs) in
     [%sexp
       "code",
         {
           execount = (c.execount : int);
-          meta = (stringdict_to_sexp c.meta : Sexp.t);
+          meta = (Stringdict.sexp_of_t c.meta : Sexp.t);
           source = (c.source : string);
-          outputs = (outputs : Sexp.t);
+          outputs : Sexp.t;
         }]
 
   let parse_output output =
@@ -285,12 +294,12 @@ module Code = struct
 end
 
 module Raw = struct
-  type cell = { meta : stringdict; mime : string; source : string }
+  type cell = { meta : Stringdict.t; mime : string; source : string }
 
-  let to_sexp c =
+  let sexp_of_cell c =
     [%sexp
       {
-        meta = (stringdict_to_sexp c.meta : Sexp.t);
+        meta = (Stringdict.sexp_of_t c.meta : Sexp.t);
         mime = (c.mime : string);
         source = (c.source : string);
       }]
@@ -316,7 +325,7 @@ module Raw = struct
 end
 
 type cell = Markdown of Markdown.cell | Code of Code.cell | Raw of Raw.cell
-type notebook = { meta : stringdict; cells : cell list; nbformat : string }
+type notebook = { meta : Stringdict.t; cells : cell list; nbformat : string }
 
 let cell_of_json js =
   let ct = cast_string (find_assoc_exn (cast_assoc js) "cell_type") in
@@ -327,11 +336,11 @@ let cell_of_json js =
   | _ -> raise (File_format_error [%sexp "Unknown cell type: ", (ct : string)])
 
 let cell_to_sexp = function
-  | Markdown md -> Markdown.to_sexp md
-  | Code c -> Code.to_sexp c
-  | Raw r -> Raw.to_sexp r
+  | Markdown md -> Markdown.sexp_of_cell md
+  | Code c -> Code.sexp_of_cell c
+  | Raw r -> Raw.sexp_of_cell r
 
-let to_sexp notebook =
+let sexp_of_notebook notebook =
   [%sexp
     {
       meta = (json_to_sexp (`Assoc notebook.meta) : Sexp.t);

@@ -124,7 +124,7 @@ let%expect_test _ =
   let test_nb = In_channel.with_open_text "../../../../../../Test Notebook.ipynb" read_nb in
   let test_nb_js = Json.from_string test_nb in
   let nb = notebook_of_json test_nb_js in
-  dump_sexp (to_sexp nb);
+  dump_sexp (sexp_of_notebook nb);
   [%expect {|
     ((meta
       ((kernelspec

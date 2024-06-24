@@ -1,5 +1,3 @@
-(* This is the style definition used by default. The generated cells are mostly using these definitions
-   and are therefore independent of the final presentation. *)
 module Json = Yojson.Basic
 open Json_get
 open Notebook
@@ -7,10 +5,16 @@ open Util
 open Base
 open Core.Printf
 
+(* Context type used for building up a typst output. *)
 module Context = struct
-  (* Configuration of rendering process, and buffer for result. *)
-  type ctx = { asset_path : string; buf : Buffer.t }
+  type t = {
+    (* path for image assets *)
+    asset_path : string;
+    (* buffer containing rendered typst output *)
+    buf : Buffer.t;
+  }
 
+  (* create a new context with an empty buffer *)
   let create asset_path = { asset_path; buf = Buffer.create 1024 }
 end
 
@@ -19,7 +23,7 @@ module Render = struct
       stored in a mutable buffer handled by the Context module. *)
 
   (* Result from rendering a cell. *)
-  type render = { attachments : Markdown.attachments }
+  type t = { attachments : Markdown.attachments }
 
   let merge a b = { attachments = List.append a.attachments b.attachments }
   let empty = { attachments = [] }
@@ -130,35 +134,38 @@ let cell_to_typst ({ buf; _ } as ctx) lang = function
       { Render.attachments }
   | Raw r -> raise Unimplemented
 
-let write_attachments ctx a =
+(* Write attachments to assets directory. *)
+let write_attachments asset_path a =
   let f (name, data) =
     (* the file names must be complete paths (but can be relative or absolute) *)
     let write_file ch = Out_channel.output_string ch data in
-    let path = Filename_base.concat ctx.asset_path name in
+    let path = Filename_base.concat asset_path name in
     Out_channel.with_open_bin path write_file
   in
   List.iter ~f a
 
 let write_render ctx main_file { Render.attachments } text =
-  let fn = Filename_base.concat ctx.asset_path main_file in
-  write_attachments ctx attachments;
+  let filename = Filename_base.concat ctx.asset_path main_file in
   let write_typst ch = Out_channel.output_string ch text in
-  Out_channel.with_open_bin fn write_typst;
-  fn
+  Out_channel.with_open_bin filename write_typst;
+  write_attachments ctx.asset_path attachments;
+  filename
+
+(* Extract language from notebook object. *)
+let extract_lang (nb : notebook) =
+  match
+    extract (path [ "kernel_spec"; "language" ] string) (`Assoc nb.meta)
+  with
+  | Error _ ->
+      extract_exn (path [ "language_info"; "name" ] string) (`Assoc nb.meta)
+  | Ok v -> v
 
 (* Create or use directory at [asset_path] and generate files there. *)
 let nb_to_typst ?(asset_path = "typstofjupyter_assets") ~header
     ?(main_file = "main.typ") nb =
-  let lang =
-    match
-      extract (path [ "kernel_spec"; "language" ] string) (`Assoc nb.meta)
-    with
-    | Error _ ->
-        extract_exn (path [ "language_info"; "name" ] string) (`Assoc nb.meta)
-    | Ok v -> v
-  in
   let buf = Buffer.create 4096 in
   let ctx = { asset_path; buf } in
+  let lang = extract_lang nb in
   let convert_cell = cell_to_typst ctx lang in
   (try Core_unix.mkdir asset_path with
   | Unix.Unix_error (Unix.EEXIST, _, _) -> ()

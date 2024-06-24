@@ -7,6 +7,8 @@ type cliargs = {
   header_file : string option;
 }
 
+(* This is the style definition used by default. The generated cells are mostly using these definitions
+   and are therefore independent of the final presentation. *)
 let default_typst_header =
   {|
 
