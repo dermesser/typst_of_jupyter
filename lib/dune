@@ -1,3 +1,4 @@
+
 (library
  (name typst)
  (modules Typst)
@@ -34,3 +35,8 @@
   (pps ppx_expect ppx_let ppx_sexp_value ppx_sexp_conv))
  (inline_tests)
  (libraries base core yojson))
+
+(library
+  (name typst_of_notebook)
+  (modules Typst_of_notebook)
+  (libraries base core notebook ansi-parse typst core_unix))

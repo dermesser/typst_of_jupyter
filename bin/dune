@@ -1,7 +1,7 @@
 (executable
  (public_name typst_of_jupyter_main)
  (name Typst_of_jupyter_main)
- (modules Typst_of_jupyter_main Typst_of_notebook)
+ (modules Typst_of_jupyter_main)
  (preprocess (pps ppx_inline_test ppx_let))
  (modes byte exe)
- (libraries base core ansi-parse core_unix core_unix.filename_unix core_unix.command_unix base64 imagelib omd notebook typst))
+ (libraries core_unix.command_unix typst_of_notebook))

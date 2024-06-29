@@ -163,9 +163,8 @@ let extract_lang (nb : notebook) =
 (* Create or use directory at [asset_path] and generate files there. *)
 let nb_to_typst ?(asset_path = "typstofjupyter_assets") ~header
     ?(main_file = "main.typ") nb =
-  let buf = Buffer.create 4096 in
-  let ctx = { asset_path; buf } in
-  let lang = extract_lang nb in
+  let ctx = Context.create asset_path in
+  let lang = extract_lang nb and buf = ctx.buf in
   let convert_cell = cell_to_typst ctx lang in
   (try Core_unix.mkdir asset_path with
   | Unix.Unix_error (Unix.EEXIST, _, _) -> ()

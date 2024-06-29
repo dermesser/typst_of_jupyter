@@ -1,5 +1,4 @@
 module Json = Yojson.Basic
-module Render = Typst_of_notebook.Render
 
 type cliargs = {
   notebook_file : string;
@@ -70,7 +69,9 @@ let args =
       ~doc:"Output path for generated files"
   and header_file =
     flag "header-file" (optional string)
-      ~doc:"File containing typst header code with styles etc."
+      ~doc:
+        "File containing typst header code with styles etc. Replaces the \
+         default header."
   in
   fun () -> main { notebook_file; asset_path; header_file }
 
