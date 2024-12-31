@@ -11,7 +11,7 @@ exception File_format_error of Sexp.t
 
 module Stringdict = struct
   (* A helper type: assoc list of string to Json object. *)
-  type t = (string, Json.t) List.Assoc.t
+  type t = (string, Json.t) Assoc.t
 
   let sexp_of_t (md : t) : Sexp.t =
     Sexp.List
@@ -30,7 +30,7 @@ end
 
 module Markdown = struct
   (* List of attachments: each attachment is a pair of filename and contents. *)
-  type attachments = (string, string) List.Assoc.t
+  type attachments = (string, string) Assoc.t
 
   type cell = {
     meta : Stringdict.t;
@@ -94,7 +94,7 @@ module Markdown = struct
             String.chop_prefix_if_exists ~prefix:attachment destination
           in
           let filename_new =
-            List.Assoc.find_exn ~equal:String.equal replacements filename_old
+            Assoc.find_exn ~equal:String.equal replacements filename_old
           in
           Image (attr, { label; destination = filename_new; title })
         else img
